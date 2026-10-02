@@ -78,3 +78,11 @@ From workspace root (`spicecrowd/`) you can run:
 - npm run dev
 - npm run lint
 - npm run release:check
+
+## Render Preview Deployment
+
+- Connect this GitHub repository in Render and create the service from `render.yaml`.
+- The Blueprint creates a free preview service and prompts for `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+- The free service uses temporary SQLite storage. Data can be lost on sleep, restart, or deploy; do not use it for real customer accounts or orders.
+- Configure a persistent production database and update the Prisma provider/schema before accepting real transactions.
+- Add `www.spicecrowd.in` as a custom domain in the Render service after the first successful deploy, then use the DNS values Render displays. Keep existing mail records and nameservers unchanged.
