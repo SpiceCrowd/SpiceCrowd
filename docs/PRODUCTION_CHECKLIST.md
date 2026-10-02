@@ -6,6 +6,9 @@ Set these environment variables in production:
 
 - DATABASE_URL
 - JWT_SECRET
+- ADMIN_EMAIL
+- ADMIN_PASSWORD
+- NEXT_PUBLIC_SITE_URL (`https://www.spicecrowd.in`)
 - NEXT_PUBLIC_MAP_URL
 
 ## 2. Payments
@@ -29,11 +32,20 @@ Set email provider key:
 
 ## 5. Database
 
-- Run Prisma generate.
-- Run migrations on production database.
+- This repository currently uses SQLite and file-backed JSON storage for development.
+- Before accepting real orders, confirm Hostinger provides persistent storage for the configured database path, or migrate the Prisma datasource and migrations to a managed production database.
+- Configure `DATABASE_URL` in Hostinger and run Prisma migrations during deployment.
 - Verify seed strategy before first release.
 
-## 6. Build and Smoke Validation
+## 6. Hostinger Node.js Web App
+
+- Import `SpiceCrowd/SpiceCrowd` from the `main` branch; the Next.js app is at the repository root.
+- Use Node.js 22 or newer supported by the hosting platform.
+- Build command: `npm run build`.
+- Start command: `npm run start`.
+- Attach `www.spicecrowd.in` after deployment and use the DNS records Hostinger provides.
+
+## 7. Build and Smoke Validation
 
 Run:
 
@@ -47,19 +59,19 @@ Consolidated command:
 
 - npm run release:check
 
-## 7. Admin Mutation Safety Checks
+## 8. Admin Mutation Safety Checks
 
 - Confirm admin endpoints return 403 without valid admin token.
 - Confirm invalid payloads return 400 with validation message.
 - Confirm valid payloads mutate data correctly.
 
-## 8. Release Readiness
+## 9. Release Readiness
 
 - Confirm checkout success flow and stock-block flow.
 - Confirm auth login/register/account route behavior.
 - Confirm footer and support links resolve correctly.
 
-## 9. Workspace Root Commands
+## 10. Workspace Root Commands
 
 From workspace root (`spicecrowd/`) you can run:
 

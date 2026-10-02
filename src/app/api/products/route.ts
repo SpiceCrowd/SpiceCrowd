@@ -32,52 +32,56 @@ export async function GET(req: Request) {
     const q = url.searchParams.get('q');
     const variant = url.searchParams.get('variant');
     const prisma = await getPrismaClient();
-    if (prisma) {
-      const dbProducts = await getCachedCatalog(async () => {
-        const dbProductsRaw = await prisma.product.findMany({ orderBy: { createdAt: 'desc' } });
-        return dbProductsRaw.map((product) => ({
-        ...product,
-        description: '',
-        location: '',
-        price: `₹${product.price}`,
-        tag: '',
-        rating: 0,
-        reviews: 0,
-        origin: '',
-        category: inferProductCategory({
-          title: product.title,
-          slug: product.slug,
-          description: '',
-        }),
-        flavor: '',
-        heatLevel: '',
-        pairWith: [],
-        bundlePrice: '',
-        bundleSave: '',
-        bundleItems: [],
-        sizeOptions: normalizeSizeOptions({ slug: product.slug, price: `₹${product.price}`, sizeOptions: [], stock: product.stock ?? 10 }),
-        usage: '',
-        frequentlyBought: [],
-        }));
-      }) as ProductQueryItem[];
-      if (slug) {
-        const storedProducts = await readJson<ProductQueryItem[]>("products.json", []);
-        const stored = storedProducts.find((product) => product.slug === slug);
-        const p = dbProducts.find((product) => product.slug === slug) || stored || {
-          ...fallbackProduct(slug),
-          stock: 10,
-        };
-        return NextResponse.json({ success: true, product: p });
-      }
+    const storedProducts = await readJson<ProductQueryItem[]>('products.json', fallbackProducts());
+    const fallbackCatalog = storedProducts.length > 0 ? storedProducts : fallbackProducts();
+    let catalog = fallbackCatalog;
 
-      const products = dbProducts.filter((product) =>
-        matchesQuery(product, { category, origin, q, variant }),
-      );
-      return NextResponse.json({ success: true, products });
+    if (prisma) {
+      try {
+        const dbProducts = await getCachedCatalog(async () => {
+          const dbProductsRaw = await prisma.product.findMany({ orderBy: { createdAt: 'desc' } });
+          const fallbackBySlug = new Map(fallbackCatalog.map((product) => [product.slug, product]));
+          return dbProductsRaw.map((product) => {
+            const base = fallbackBySlug.get(product.slug);
+            const price = `₹${product.price}`;
+            return {
+              ...base,
+              ...product,
+              description: base?.description || product.shortDesc || '',
+              location: base?.location || '',
+              price,
+              tag: base?.tag || '',
+              rating: base?.rating || 0,
+              reviews: base?.reviews || 0,
+              origin: base?.origin || '',
+              category: base?.category || inferProductCategory({ title: product.title, slug: product.slug, description: product.shortDesc || '' }),
+              flavor: base?.flavor || '',
+              heatLevel: base?.heatLevel || '',
+              pairWith: base?.pairWith || [],
+              bundlePrice: base?.bundlePrice || '',
+              bundleSave: base?.bundleSave || '',
+              bundleItems: base?.bundleItems || [],
+              sizeOptions: normalizeSizeOptions({ slug: product.slug, price, sizeOptions: base?.sizeOptions || [], stock: product.stock ?? 10 }),
+              usage: base?.usage || '',
+              frequentlyBought: base?.frequentlyBought || [],
+            };
+          });
+        }) as ProductQueryItem[];
+
+        if (dbProducts.length > 0) {
+          const dbBySlug = new Map(dbProducts.map((product) => [product.slug, product]));
+          const catalogSlugs = new Set(fallbackCatalog.map((product) => product.slug));
+          catalog = [
+            ...fallbackCatalog.map((product) => dbBySlug.get(product.slug) || product),
+            ...dbProducts.filter((product) => !catalogSlugs.has(product.slug)),
+          ];
+        }
+      } catch {
+        catalog = fallbackCatalog;
+      }
     }
 
-    // fallback to storage files
-    const list = (await readJson<ProductQueryItem[]>('products.json', fallbackProducts())).map((product) => ({
+    const list = catalog.map((product) => ({
       ...product,
       stock: typeof product.stock === 'number' ? product.stock : 10,
     }));
