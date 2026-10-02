@@ -9,6 +9,8 @@ services:
     startCommand: npx prisma db push --skip-generate && npm run start
     autoDeployTrigger: checksPass
     healthCheckPath: /
+    domains:
+      - www.spicecrowd.in
     envVars:
       - key: NODE_VERSION
         value: 22
