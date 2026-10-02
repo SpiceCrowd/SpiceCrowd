@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="100%" height="100%" fill="#f5efe6" />
+  <ellipse cx="400" cy="340" rx="190" ry="140" fill="#0b3b2e" />
+  <g fill="#f5efe6" font-family="Verdana, sans-serif">
+    <text x="400" y="420" font-size="44" text-anchor="middle" font-weight="700">White Pepper</text>
+    <text x="400" y="480" font-size="20" text-anchor="middle">Whole • Mild • 100g</text>
+  </g>
+</svg>

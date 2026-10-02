@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="600" viewBox="0 0 1600 600">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#0b3b2e" />
+      <stop offset="1" stop-color="#134a3a" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="#0b3b2e" />
+  <g fill="#f5efe6" font-family="Georgia, serif" font-weight="700">
+    <text x="80" y="160" font-size="56">Spice Crowd</text>
+    <text x="80" y="230" font-size="28" fill="#f5efe6">PURE INDIAN SPICES — From the Hills of India to Your Home</text>
+  </g>
+  <g transform="translate(1000,80)">
+    <rect x="0" y="0" width="460" height="440" rx="24" fill="#f5efe6" opacity="0.06" />
+    <g fill="#f5efe6" font-family="Inter, Arial" font-weight="600">
+      <text x="24" y="120" font-size="34">Authentic • Natural • Premium</text>
+      <text x="24" y="180" font-size="20" fill="#b98b3b">Shop Now →</text>
+    </g>
+  </g>
+</svg>

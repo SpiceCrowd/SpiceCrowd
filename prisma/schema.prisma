@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  // For development we use SQLite. Set the DATABASE_URL in your environment
+  // to `file:./dev.db`. For production, change the provider to `postgresql`
+  // and update `DATABASE_URL` to the Postgres connection string, then run
+  // migrations on the production database.
+  url      = env("DATABASE_URL")
+}
+
+model Storage {
+  key   String @id
+  data  String
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("user")
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  products  Product[]
+}
+
+model Product {
+  id           String          @id @default(cuid())
+  title        String
+  shortDesc    String?
+  description  String?
+  slug         String          @unique
+  sku          String?         @unique
+  barcode      String?
+  mrp          Int?
+  price        Int
+  costPrice    Int?
+  gstPercent   Float?
+  stock        Int             @default(0)
+  category     Category?       @relation(fields: [categoryId], references: [id])
+  categoryId   String?
+  images       ProductImage[]
+  variants     ProductVariant[]
+  originId     String?
+  origin       Origin?         @relation(fields: [originId], references: [id])
+  isFeatured   Boolean         @default(false)
+  isBestseller Boolean         @default(false)
+  isNewArrival Boolean         @default(false)
+  status       String          @default("active")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  name       String?
+  weightGram Int
+  price      Int
+  sku        String?
+  stock      Int      @default(0)
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  url       String
+  alt       String?
+  order     Int     @default(0)
+}
+
+model Origin {
+  id       String @id @default(cuid())
+  country  String
+  state    String?
+  region   String?
+  district String?
+  farm     String?
+  products Product[]
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  total     Int
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  orderId   String
+  total     Int
+  data      String
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "efe27c55-a177-4481-8574-385e5da07634",
+    "title": "Diwali Gourmet Bundle",
+    "slug": "diwali-gourmet-bundle",
+    "description": "Festive offer for premium spice bundles.",
+    "offerType": "percent",
+    "value": 18,
+    "minOrder": 1499,
+    "startAt": "2026-09-21T16:10:35.936Z",
+    "endAt": "2026-10-11T16:10:35.936Z",
+    "status": "active",
+    "featured": true,
+    "createdAt": "2026-09-21T16:10:35.936Z",
+    "updatedAt": "2026-09-21T16:10:35.936Z"
+  },
+  {
+    "id": "cac3dd61-ff94-4b4f-84a1-161b6e26a43b",
+    "title": "Weekend Flat 200",
+    "slug": "weekend-flat-200",
+    "description": "Flat discount on weekend checkouts.",
+    "offerType": "flat",
+    "value": 200,
+    "minOrder": 1800,
+    "startAt": "2026-09-21T16:10:35.936Z",
+    "endAt": "2026-10-01T16:10:35.936Z",
+    "status": "draft",
+    "featured": false,
+    "createdAt": "2026-09-21T16:10:35.936Z",
+    "updatedAt": "2026-09-21T16:10:35.936Z"
+  }
+]

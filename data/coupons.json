@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ef63ea64-c6d5-4250-8a2b-ef50d81ba5d7",
+    "code": "SPICE10",
+    "title": "Festival 10% Off",
+    "discountType": "percent",
+    "discountValue": 10,
+    "minOrder": 799,
+    "maxDiscount": 300,
+    "usageLimit": 500,
+    "usedCount": 38,
+    "expiresAt": "2026-10-06T16:10:31.752Z",
+    "status": "active",
+    "createdAt": "2026-09-21T16:10:31.752Z",
+    "updatedAt": "2026-09-21T16:10:31.752Z"
+  },
+  {
+    "id": "75ecb848-46b1-4f80-bba1-d18622b89f5a",
+    "code": "FIRST150",
+    "title": "First Order Flat 150",
+    "discountType": "flat",
+    "discountValue": 150,
+    "minOrder": 999,
+    "maxDiscount": null,
+    "usageLimit": 200,
+    "usedCount": 64,
+    "expiresAt": "2026-11-05T16:10:31.752Z",
+    "status": "active",
+    "createdAt": "2026-09-21T16:10:31.752Z",
+    "updatedAt": "2026-09-21T16:10:31.752Z"
+  }
+]

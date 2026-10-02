@@ -1,0 +1,68 @@
+node_modules/
+.next/
+dev.db
+/.env
+.env.local
+/.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/.idea
+/*.log
+coverage/
+dist/
+/.vercel/
+public/images/*.psd
+*.sqlite
+data/analytics.json
+data/customers.json
+data/email-log.json
+data/orders.json
+data/returns.json
+data/reviews.json
+data/users.json
+test-results/
+playwright-report/
+build.log
+*-results.txt
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
