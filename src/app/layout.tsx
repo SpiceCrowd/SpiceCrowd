@@ -28,12 +28,13 @@ const dmSerif = DM_Serif_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(site.website),
   title: "Spice Crowd – Premium Indian Spices",
   description: "Spice Crowd delivers clean, farm-fresh spices from Kolli Hills to your kitchen.",
   openGraph: {
     title: 'Spice Crowd – Premium Indian Spices',
     description: 'Spice Crowd delivers clean, farm-fresh spices from Kolli Hills to your kitchen.',
-    url: '/',
+    url: site.website,
   },
   robots: {
     index: true,

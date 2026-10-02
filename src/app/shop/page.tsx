@@ -2,6 +2,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/home/Footer";
 import ProductCard from "@/components/products/ProductCard";
 import type { Product } from "@/lib/products";
+import { site } from "@/config/site";
 
 type ShopSearchParams = {
   category?: string;
@@ -10,7 +11,7 @@ type ShopSearchParams = {
 };
 
 async function fetchProducts(query: string): Promise<Product[]> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || site.website;
   const res = await fetch(`${base}/api/products${query}`);
   const data = (await res.json().catch(() => ({}))) as { products?: Product[] };
   return data.products || [];

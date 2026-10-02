@@ -3,6 +3,7 @@ import ProductDetailClient from "./ProductDetailClient";
 import { getProduct, type Product } from "@/lib/products";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/home/Footer";
+import { site } from "@/config/site";
 
 type ProductPageParams = {
   slug: string;
@@ -11,7 +12,7 @@ type ProductPageParams = {
 async function fetchProduct(slug: string): Promise<Product | null> {
   const staticProduct = getProduct(slug) ?? null;
   try {
-    const base = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || site.website;
     const res = await fetch(`${base}/api/products?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
     const json = (await res.json().catch(() => ({}))) as { product?: Partial<Product> | null };
     if (!json.product) {

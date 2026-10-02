@@ -3,6 +3,7 @@ import Footer from "@/components/home/Footer";
 import type { Product } from "@/lib/products";
 
 import SearchClient from "@/components/products/SearchClient";
+import { site } from "@/config/site";
 
 type SearchableProduct = Product & {
   category?: string;
@@ -13,7 +14,7 @@ async function fetchSearchResults(query: string): Promise<SearchableProduct[]> {
     return [];
   }
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || site.website;
   const res = await fetch(`${base}/api/products?q=${encodeURIComponent(query)}`, { cache: "no-store" });
   const data = (await res.json().catch(() => ({}))) as { products?: SearchableProduct[] };
   return data.products || [];

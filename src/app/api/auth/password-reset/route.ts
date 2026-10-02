@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { readJson, writeJson } from "@/lib/storage";
 import { isValidEmail, notifyEmail } from "@/lib/notifications";
+import { site } from "@/config/site";
 
 type ResetToken = { token: string; userId: string; email: string; expiresAt: string; usedAt?: string };
 
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
     const tokens = await readJson<ResetToken[]>("password-reset-tokens.json", []);
     tokens.push({ token, userId: user.id, email, expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() });
     await writeJson("password-reset-tokens.json", tokens);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || site.website;
     await notifyEmail({ to: email, subject: "Reset your Spice Crowd password", text: `Reset your password using this link: ${appUrl}/account/reset-password?token=${token}`, key: `password-reset:${token}` });
     return NextResponse.json(generic);
   }
