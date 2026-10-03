@@ -7,7 +7,9 @@ import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import type { Product } from "@/lib/products";
 
-export default function ProductCard({ product }: { product: Product }) {
+export type CardProduct = Pick<Product, "slug" | "title" | "price" | "tag" | "stock"> & { sizeOptions?: Array<{ sku?: string }> };
+
+export default function ProductCard({ product }: { product: CardProduct }) {
   const { toggle, has } = useWishlist();
   const wishlisted = has(product.slug);
 

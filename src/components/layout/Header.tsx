@@ -1,8 +1,10 @@
 ﻿"use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import CartCount from "@/components/cart/CartCount";
+import SearchBox from "@/components/products/SearchBox";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 const navItems = [
@@ -17,6 +19,8 @@ const navItems = [
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useAuth();
+  // The catalogue page has its own prominent search box.
+  const onCatalogue = usePathname() === "/products";
   const accountLabel = user?.name?.trim() || user?.email || "Sign In";
 
   return (
@@ -33,16 +37,7 @@ export default function Header() {
         </div>
 
         <div className="hidden flex-1 items-center justify-center lg:flex">
-          <form action="/products" method="get" role="search" className="flex w-full max-w-xl items-center overflow-hidden rounded-xl border border-[color:var(--brand-line)] bg-white shadow-sm">
-            <input
-              name="q"
-              type="search"
-              aria-label="Search for spices"
-              placeholder="Search for spices, masalas, coffee..."
-              className="w-full bg-transparent px-4 py-3 text-sm text-slate-700 placeholder:text-slate-500 focus:outline-none"
-            />
-            <button type="submit" aria-label="Search" className="flex h-12 w-12 items-center justify-center bg-[color:var(--brand-deep-green)] text-xl text-[color:var(--brand-gold)] transition hover:bg-[color:var(--brand-maroon-700)]">⌕</button>
-          </form>
+          <div className="w-full max-w-xl">{!onCatalogue && <SearchBox />}</div>
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
@@ -72,6 +67,7 @@ export default function Header() {
         </div>
       </div>
 
+      {!onCatalogue && <div className="mx-auto max-w-7xl px-4 pb-3 sm:px-6 lg:hidden"><SearchBox /></div>}
       <div className="border-t border-[color:var(--brand-line)]/80 bg-[color:var(--brand-ivory)]">
         <nav className={`${menuOpen ? "flex" : "hidden"} mx-auto max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium text-slate-700 md:flex md:flex-row md:items-center md:justify-center md:gap-2`}>
           {navItems.map((item) => (
@@ -79,10 +75,6 @@ export default function Header() {
               {item.label}
             </a>
           ))}
-          <form action="/products" method="get" role="search" className="flex gap-2 pt-2 md:hidden lg:hidden">
-            <input name="q" type="search" aria-label="Search for spices" placeholder="Search spices" className="min-w-0 flex-1 rounded-lg border border-[color:var(--brand-line)] bg-white px-3 py-2 text-sm" />
-            <button type="submit" className="rounded-lg bg-[color:var(--brand-deep-green)] px-4 py-2 text-sm font-semibold text-white">Search</button>
-          </form>
           <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 md:hidden">
             <a href="/account" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2">{accountLabel}</a>
             <a href="/wishlist" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2">Wishlist</a>
