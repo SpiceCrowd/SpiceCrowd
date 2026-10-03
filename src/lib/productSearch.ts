@@ -1,7 +1,7 @@
 import { parsePrice } from "@/lib/cart";
 import type { Product } from "@/lib/products";
 
-export type SearchableProduct = Product & { category?: string; sku?: string | null };
+export type SearchableProduct = Product & { category?: string; sku?: string | null; createdAt?: string | Date | null };
 
 export type SearchItem = {
   slug: string;
@@ -17,17 +17,35 @@ export type SearchItem = {
   sizeOptions: Array<{ sku?: string }>;
 };
 
-export type SearchSort = "relevance" | "price-low" | "price-high" | "name";
+export type SearchSort = "relevance" | "newest" | "price-low" | "price-high" | "name";
 
 export type SearchParams = {
   q?: string | null;
-  category?: string | null;
-  origin?: string | null;
+  categories?: string[];
+  origins?: string[];
+  heat?: string[];
   sort?: string | null;
   inStock?: boolean;
+  onOffer?: boolean;
+  // Slugs of products covered by a live product-specific offer; null when no such offer exists.
+  offerSlugs?: Set<string> | null;
+  minPrice?: number | null;
   maxPrice?: number | null;
   page?: number;
   pageSize?: number;
+};
+
+export type FacetValue = { name: string; count: number };
+
+export type SearchFacets = {
+  categories: FacetValue[];
+  origins: FacetValue[];
+  heat: FacetValue[];
+  price: { min: number; max: number } | null;
+  availability: { inStock: number; outOfStock: number };
+  // null means no product-specific offer is live, so the filter must not be shown.
+  offers: number | null;
+  newestAvailable: boolean;
 };
 
 export type SearchResult = {
@@ -40,14 +58,15 @@ export type SearchResult = {
   correctedFrom: string | null;
   correctedTo: string | null;
   sort: SearchSort;
-  facets: { categories: Array<{ name: string; count: number }>; origins: Array<{ name: string; count: number }> };
+  facets: SearchFacets;
 };
 
 export const MAX_QUERY_LENGTH = 80;
 export const DEFAULT_PAGE_SIZE = 12;
 export const MAX_PAGE_SIZE = 48;
+const MAX_FILTER_VALUES = 12;
 
-const sorts: SearchSort[] = ["relevance", "price-low", "price-high", "name"];
+const sorts: SearchSort[] = ["relevance", "newest", "price-low", "price-high", "name"];
 // Title, SKU, category, tag and origin are what a product is; flavour, pairings and prose only mention other products.
 const PRIMARY_WEIGHT = 3;
 
@@ -165,8 +184,12 @@ function correctTokens(entries: Indexed[], tokens: string[]) {
   return changed ? corrected : null;
 }
 
+const stockOf = (product: SearchableProduct) => (typeof product.stock === "number" ? product.stock : 10);
+const originOf = (product: SearchableProduct) => product.origin || product.location || "";
+const timeOf = (product: SearchableProduct) => (product.createdAt ? new Date(product.createdAt).getTime() : 0);
+
 export function toSearchItem(product: SearchableProduct): SearchItem {
-  const stock = typeof product.stock === "number" ? product.stock : 10;
+  const stock = stockOf(product);
   const skus = productSkus(product);
   return {
     slug: product.slug,
@@ -175,7 +198,7 @@ export function toSearchItem(product: SearchableProduct): SearchItem {
     priceValue: parsePrice(product.price),
     tag: product.tag || "",
     category: product.category || "",
-    origin: product.origin || product.location || "",
+    origin: originOf(product),
     stock,
     inStock: stock > 0,
     sku: skus[0] ?? null,
@@ -189,28 +212,42 @@ function facetCounts(values: string[]) {
   return [...counts.entries()].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
-export function parseSearchParams(get: (key: string) => string | null | undefined): SearchParams {
+const heatOrder = ["None", "Mild", "Medium", "Hot"];
+
+function cleanList(values: string[] | undefined) {
+  return [...new Set((values ?? []).map(sanitizeQuery).filter(Boolean))].slice(0, MAX_FILTER_VALUES);
+}
+
+export function parseSearchParams(get: (key: string) => string | null | undefined, getAll: (key: string) => string[] = (key) => [get(key)].filter((v): v is string => Boolean(v))): SearchParams {
   const num = (key: string) => {
     const value = Number(get(key));
     return Number.isFinite(value) && value > 0 ? Math.floor(value) : null;
   };
   return {
     q: get("q"),
-    category: get("category"),
-    origin: get("origin"),
+    // `category` and `origin` repeat to select several values (OR within a group, AND between groups).
+    categories: getAll("category"),
+    origins: getAll("origin"),
+    heat: getAll("heat"),
     sort: get("sort"),
     inStock: get("inStock") === "1",
+    onOffer: get("offer") === "1",
+    minPrice: num("minPrice"),
     maxPrice: num("maxPrice"),
     page: num("page") ?? 1,
     pageSize: num("pageSize") ?? DEFAULT_PAGE_SIZE,
   };
 }
 
+type FilterGroup = "category" | "origin" | "heat" | "availability" | "offer" | "price";
+
 export function searchCatalog(catalog: SearchableProduct[], params: SearchParams): SearchResult {
   const query = sanitizeQuery(params.q);
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, params.pageSize ?? DEFAULT_PAGE_SIZE));
-  const sort: SearchSort = sorts.includes(params.sort as SearchSort) ? (params.sort as SearchSort) : "relevance";
   const entries = catalog.map(index);
+  const newestAvailable = catalog.length > 0 && catalog.every((product) => Boolean(product.createdAt));
+  const requested = sorts.includes(params.sort as SearchSort) ? (params.sort as SearchSort) : "relevance";
+  const sort: SearchSort = requested === "newest" && !newestAvailable ? "relevance" : requested;
 
   let tokens = tokenize(query);
   let correctedFrom: string | null = null;
@@ -232,31 +269,48 @@ export function searchCatalog(catalog: SearchableProduct[], params: SearchParams
       }
     }
   }
-  const scored = matches;
 
-  const category = sanitizeQuery(params.category);
-  const origin = sanitizeQuery(params.origin);
-  const facetBase = scored;
-  const filtered = scored.filter(({ entry }) => {
-    const p = entry.product;
-    if (category && (p.category || "") !== category) return false;
-    if (origin && (p.origin || p.location || "") !== origin) return false;
-    if (params.inStock && !((typeof p.stock === "number" ? p.stock : 10) > 0)) return false;
-    if (params.maxPrice && parsePrice(p.price) > params.maxPrice) return false;
+  const categories = new Set(cleanList(params.categories));
+  const origins = new Set(cleanList(params.origins));
+  const heat = new Set(cleanList(params.heat));
+  const offerSlugs = params.offerSlugs ?? null;
+  const minPrice = params.minPrice && params.minPrice > 0 ? params.minPrice : null;
+  const maxPrice = params.maxPrice && params.maxPrice > 0 ? params.maxPrice : null;
+  const [low, high] = minPrice && maxPrice && minPrice > maxPrice ? [maxPrice, minPrice] : [minPrice, maxPrice];
+
+  // Every group is applied except the one being counted, so facet counts show what each choice would add.
+  const passes = (p: SearchableProduct, skip?: FilterGroup) => {
+    if (skip !== "category" && categories.size && !categories.has(p.category || "")) return false;
+    if (skip !== "origin" && origins.size && !origins.has(originOf(p))) return false;
+    if (skip !== "heat" && heat.size && !heat.has(p.heatLevel || "")) return false;
+    if (skip !== "availability" && params.inStock && stockOf(p) <= 0) return false;
+    if (skip !== "offer" && params.onOffer && !(offerSlugs && offerSlugs.has(p.slug))) return false;
+    if (skip !== "price") {
+      const price = parsePrice(p.price);
+      if (low && price < low) return false;
+      if (high && price > high) return false;
+    }
     return true;
-  });
+  };
 
-  const inStockRank = (row: (typeof filtered)[number]) => ((typeof row.entry.product.stock === "number" ? row.entry.product.stock : 10) > 0 ? 0 : 1);
+  const filtered = matches.filter(({ entry }) => passes(entry.product));
+  const inStockRank = (row: (typeof filtered)[number]) => (stockOf(row.entry.product) > 0 ? 0 : 1);
+  const priceOf = (row: (typeof filtered)[number]) => parsePrice(row.entry.product.price);
   filtered.sort((a, b) => {
-    if (sort === "price-low") return parsePrice(a.entry.product.price) - parsePrice(b.entry.product.price) || a.position - b.position;
-    if (sort === "price-high") return parsePrice(b.entry.product.price) - parsePrice(a.entry.product.price) || a.position - b.position;
+    if (sort === "price-low") return priceOf(a) - priceOf(b) || a.position - b.position;
+    if (sort === "price-high") return priceOf(b) - priceOf(a) || a.position - b.position;
     if (sort === "name") return a.entry.product.title.localeCompare(b.entry.product.title);
+    if (sort === "newest") return timeOf(b.entry.product) - timeOf(a.entry.product) || a.position - b.position;
     return inStockRank(a) - inStockRank(b) || b.score - a.score || a.position - b.position;
   });
 
+  const forGroup = (group: FilterGroup) => matches.map((row) => row.entry.product).filter((p) => passes(p, group));
+  const priceBase = forGroup("price").map((p) => parsePrice(p.price));
+  const availabilityBase = forGroup("availability");
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(Math.max(1, params.page ?? 1), totalPages);
+
   return {
     items: filtered.slice((page - 1) * pageSize, page * pageSize).map((row) => toSearchItem(row.entry.product)),
     total,
@@ -268,8 +322,13 @@ export function searchCatalog(catalog: SearchableProduct[], params: SearchParams
     correctedTo: correctedFrom ? tokens.join(" ") : null,
     sort,
     facets: {
-      categories: facetCounts(facetBase.map((row) => row.entry.product.category || "")),
-      origins: facetCounts(facetBase.map((row) => row.entry.product.origin || row.entry.product.location || "")),
+      categories: facetCounts(forGroup("category").map((p) => p.category || "")),
+      origins: facetCounts(forGroup("origin").map(originOf)),
+      heat: facetCounts(forGroup("heat").map((p) => p.heatLevel || "")).sort((a, b) => heatOrder.indexOf(a.name) - heatOrder.indexOf(b.name)),
+      price: priceBase.length ? { min: Math.min(...priceBase), max: Math.max(...priceBase) } : null,
+      availability: { inStock: availabilityBase.filter((p) => stockOf(p) > 0).length, outOfStock: availabilityBase.filter((p) => stockOf(p) <= 0).length },
+      offers: offerSlugs ? forGroup("offer").filter((p) => offerSlugs.has(p.slug)).length : null,
+      newestAvailable,
     },
   };
 }

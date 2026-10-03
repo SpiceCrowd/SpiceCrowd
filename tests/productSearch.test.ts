@@ -80,10 +80,60 @@ describe("product search", () => {
   });
 
   it("filters by category, price and stock, and sorts", () => {
-    expect(run("", { category: "Powders" }).items.every((i) => i.category === "Powders")).toBe(true);
+    expect(run("", { categories: ["Powders"] }).items.every((i) => i.category === "Powders")).toBe(true);
     expect(run("", { maxPrice: 50 }).items.every((i) => i.priceValue <= 50)).toBe(true);
     const asc = run("", { sort: "price-low" }).items.map((i) => i.priceValue);
     expect([...asc].sort((a, b) => a - b)).toEqual(asc);
+  });
+
+  it("combines filters: OR within a group, AND between groups", () => {
+    const both = run("", { categories: ["Powders", "Honey"] });
+    expect(new Set(both.items.map((i) => i.category))).toEqual(new Set(["Powders", "Honey"]));
+    const combo = run("", { categories: ["Powders"], minPrice: 70, maxPrice: 80, inStock: true });
+    expect(combo.items.length).toBeGreaterThan(0);
+    expect(combo.items.every((i) => i.category === "Powders" && i.priceValue >= 70 && i.priceValue <= 80 && i.inStock)).toBe(true);
+    const kolli = run("", { origins: ["Kolli Hills, Tamil Nadu"], heat: ["Mild"], categories: ["Whole Spices"] });
+    expect(kolli.items.every((i) => i.origin === "Kolli Hills, Tamil Nadu" && i.category === "Whole Spices")).toBe(true);
+  });
+
+  it("returns zero for impossible combinations instead of ignoring a filter", () => {
+    expect(run("", { categories: ["Honey"], maxPrice: 50 }).total).toBe(0);
+    expect(run("honey", { categories: ["Powders"] }).total).toBe(0);
+  });
+
+  it("swaps an inverted price range", () => {
+    const result = run("", { minPrice: 100, maxPrice: 50 });
+    expect(result.total).toBeGreaterThan(0);
+    expect(result.items.every((i) => i.priceValue >= 50 && i.priceValue <= 100)).toBe(true);
+  });
+
+  it("counts each facet with the other filters applied", () => {
+    const result = run("", { categories: ["Powders"], maxPrice: 80 });
+    // Category counts ignore the category filter itself but respect the price filter.
+    const withinPrice = catalog.filter((p) => Number(p.price.replace(/[^0-9]/g, "")) <= 80);
+    const whole = withinPrice.filter((p) => p.category === "Whole Spices").length;
+    expect(result.facets.categories.find((c) => c.name === "Whole Spices")?.count).toBe(whole);
+    expect(result.total).toBe(withinPrice.filter((p) => p.category === "Powders").length);
+    expect(result.facets.heat.map((h) => h.name)).toEqual(expect.arrayContaining(["Mild"]));
+  });
+
+  it("only reports facets backed by real data", () => {
+    const result = run("");
+    expect(result.facets.offers).toBeNull();
+    expect(result.facets.newestAvailable).toBe(false);
+    expect(run("", { sort: "newest" }).sort).toBe("relevance");
+    const dated = catalog.map((p, i) => ({ ...p, createdAt: new Date(2026, 0, i + 1).toISOString() }));
+    const newest = searchCatalog(dated, { sort: "newest", pageSize: 5 });
+    expect(newest.facets.newestAvailable).toBe(true);
+    expect(newest.items[0].slug).toBe(catalog[catalog.length - 1].slug);
+  });
+
+  it("filters to products with a live offer when one exists", () => {
+    const offerSlugs = new Set(["kolli-hills-honey", "mustard-seeds"]);
+    const result = searchCatalog(catalog, { onOffer: true, offerSlugs, pageSize: 48 });
+    expect(result.items.map((i) => i.slug).sort()).toEqual(["kolli-hills-honey", "mustard-seeds"]);
+    expect(result.facets.offers).toBe(2);
+    expect(searchCatalog(catalog, { onOffer: true, offerSlugs: null }).total).toBe(0);
   });
 
   it("reflects stock: unavailable products rank last and can be filtered out", () => {
