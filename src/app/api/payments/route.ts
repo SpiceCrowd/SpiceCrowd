@@ -15,6 +15,13 @@ type PaymentRequestBody = {
  * POST body: { amount, currency, orderId }
  */
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { success: false, error: "Live payments are unavailable until a payment provider is configured." },
+      { status: 503 },
+    );
+  }
+
   const body = (await req.json().catch(() => ({}))) as PaymentRequestBody;
   const amount = Number(body?.amount ?? 0);
   const currency = body?.currency ?? "INR";

@@ -1,5 +1,6 @@
 export type CartItem = {
   slug: string;
+  variantId?: string;
   title: string;
   price: number;
   priceLabel: string;
@@ -9,6 +10,10 @@ export type CartItem = {
 export type AddToCartPayload = Omit<CartItem, "quantity"> & {
   quantity?: number;
 };
+
+export function cartLineKey(item: Pick<CartItem, "slug" | "variantId">) {
+  return `${item.slug}::${item.variantId || "default"}`;
+}
 
 export type CartTotals = {
   subtotal: number;

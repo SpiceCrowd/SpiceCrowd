@@ -3,6 +3,7 @@ import { readJson, writeJson } from "@/lib/storage";
 import { verifyToken, isAdmin } from "@/lib/auth";
 import { createDummyTracking, courierOptions, trackingStatuses, type DummyCourier } from "@/lib/tracking";
 import { isValidEmail, notifyEmail } from "@/lib/notifications";
+import { canViewOrder } from "@/lib/orderAccess";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -34,8 +35,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const token = auth || undefined;
     const payload: any = verifyToken(token);
     const userId = payload?.sub || payload?.uid || null;
+    const userEmail = typeof payload?.email === "string" ? payload.email : null;
     const admin = isAdmin(token);
-    const guestEmail = new URL(req.url).searchParams.get('email')?.trim().toLowerCase();
+    const guestEmail = new URL(req.url).searchParams.get('email')?.trim().toLowerCase() || null;
 
     const snapshots = await readJson<any[]>("orders.json", []);
     let snapshot = snapshots.find((o) => String(o.id) === String(id));
@@ -65,8 +67,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
           }
         : snapshot;
 
-      const guestAllowed = Boolean(guestEmail && merged?.email && String(merged.email).toLowerCase() === guestEmail);
-      if (!admin && merged?.userId && String(merged.userId) !== String(userId) && !guestAllowed) {
+      if (!canViewOrder(merged, userId, userEmail, guestEmail, admin)) {
         return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 });
       }
 
@@ -75,8 +76,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const order = snapshot;
     if (!order) return NextResponse.json({ success: false, error: 'not found' }, { status: 404 });
-    const guestAllowed = Boolean(guestEmail && order.email && String(order.email).toLowerCase() === guestEmail);
-    if (!admin && order.userId && String(order.userId) !== String(userId) && !guestAllowed) {
+    if (!canViewOrder(order, userId, userEmail, guestEmail, admin)) {
       return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 });
     }
     return NextResponse.json({ success: true, order });

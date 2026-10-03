@@ -2,15 +2,15 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AddToCartPayload, CartItem } from "@/lib/cart";
-import { calculateCartTotals, cartStorageKey, maxProductStock } from "@/lib/cart";
+import { calculateCartTotals, cartLineKey, cartStorageKey, maxProductStock } from "@/lib/cart";
 
 type CartContextValue = {
   items: CartItem[];
   cartCount: number;
   total: number;
   addItem: (item: AddToCartPayload) => void;
-  updateQuantity: (slug: string, quantity: number) => void;
-  removeItem: (slug: string) => void;
+  updateQuantity: (slug: string, quantity: number, variantId?: string) => void;
+  removeItem: (slug: string, variantId?: string) => void;
   clearCart: () => void;
 };
 
@@ -48,11 +48,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = (item: AddToCartPayload) => {
     const quantityToAdd = item.quantity ?? 1;
     const currentItems = items;
-    const existing = currentItems.find((cartItem) => cartItem.slug === item.slug);
+    const itemKey = cartLineKey(item);
+    const existing = currentItems.find((cartItem) => cartLineKey(cartItem) === itemKey);
     const nextQuantity = Math.min(maxProductStock, (existing?.quantity || 0) + quantityToAdd);
     const nextItems = existing
       ? currentItems.map((cartItem) =>
-          cartItem.slug === item.slug
+          cartLineKey(cartItem) === itemKey
             ? { ...cartItem, quantity: nextQuantity }
             : cartItem,
         )
@@ -61,16 +62,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     writeCart(nextItems);
   };
 
-  const updateQuantity = (slug: string, quantity: number) => {
+  const updateQuantity = (slug: string, quantity: number, variantId?: string) => {
     const nextItems = items
-        .map((item) => (item.slug === slug ? { ...item, quantity: Math.min(maxProductStock, quantity) } : item))
+        .map((item) => (item.slug === slug && item.variantId === variantId ? { ...item, quantity: Math.min(maxProductStock, quantity) } : item))
         .filter((item) => item.quantity > 0);
 
     writeCart(nextItems);
   };
 
-  const removeItem = (slug: string) => {
-    writeCart(items.filter((item) => item.slug !== slug));
+  const removeItem = (slug: string, variantId?: string) => {
+    writeCart(items.filter((item) => item.slug !== slug || item.variantId !== variantId));
   };
 
   const clearCart = () => {

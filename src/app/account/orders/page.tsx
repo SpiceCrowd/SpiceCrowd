@@ -9,15 +9,26 @@ type Order = { id: string; items: any[]; total: number; status: string; createdA
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('sc_token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['authorization'] = `Bearer ${token}`;
-      const res = await fetch('/api/orders', { headers });
-      const json = await res.json();
-      setOrders(json.orders || json.orders || json || []);
+      try {
+        const res = await fetch('/api/orders', { headers });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(res.status === 401 ? "Sign in to view your orders." : "Orders are temporarily unavailable.");
+          setOrders([]);
+          return;
+        }
+        setOrders(Array.isArray(json.orders) ? json.orders : []);
+      } catch {
+        setError("Orders are temporarily unavailable.");
+        setOrders([]);
+      }
     })();
   }, []);
 
@@ -27,7 +38,8 @@ export default function OrdersPage() {
       <main className="brand-page-bg mx-auto max-w-4xl p-8">
         <h1 className="text-2xl font-bold">My Orders</h1>
         <div className="mt-6 space-y-4">
-          {orders.length === 0 && <div>No orders yet.</div>}
+          {error && <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">{error} {error.startsWith("Sign in") && <a className="font-semibold underline" href="/account/login">Sign in</a>}</div>}
+          {!error && orders.length === 0 && <div>No orders yet.</div>}
           {orders.map((o) => (
             <div key={o.id} className="rounded-2xl border border-[color:var(--brand-gold)]/45 bg-white p-4 shadow-sm">
               <div className="flex justify-between">

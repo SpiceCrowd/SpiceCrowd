@@ -19,7 +19,6 @@ export default function ProductCatalog({ products }: { products: Product[] }) {
       const priceB = Number(b.price.replace(/[^0-9.]/g, "")) || 0;
       if (sort === "price-low") return priceA - priceB;
       if (sort === "price-high") return priceB - priceA;
-      if (sort === "rating") return b.rating - a.rating;
       return 0;
     });
   }, [maxPrice, products, sort]);
@@ -45,7 +44,6 @@ export default function ProductCatalog({ products }: { products: Product[] }) {
               <option value="featured">Featured</option>
               <option value="price-low">Price: low to high</option>
               <option value="price-high">Price: high to low</option>
-              <option value="rating">Top rated</option>
             </select>
           </label>
         </div>

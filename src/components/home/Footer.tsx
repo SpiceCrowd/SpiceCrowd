@@ -20,7 +20,7 @@ export default function Footer() {
       { label: "FAQ", href: "/support#faq" },
     ],
     info: [
-      { label: "Return and Exchanges", href: "/support#return-and-exchanges" },
+      { label: "Return and Exchanges", href: "/support#returns" },
       { label: "Terms", href: "/support#terms" },
       { label: "Privacy Policy", href: "/support#privacy-policy" },
       { label: "GST Updates", href: "/support#gst-updates" },

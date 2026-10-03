@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart/CartProvider";
-import { calculateCartTotals, couponStorageKey, formatCurrency, maxProductStock } from "@/lib/cart";
+import { calculateCartTotals, cartLineKey, couponStorageKey, formatCurrency, maxProductStock } from "@/lib/cart";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/home/Footer";
@@ -77,7 +77,7 @@ export default function CartPage() {
         <div className="grid gap-4 lg:grid-cols-[1.45fr_0.8fr]">
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.slug} className="form-shell p-3.5 sm:p-4">
+            <div key={cartLineKey(item)} className="form-shell p-3.5 sm:p-4">
               <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[15px] font-semibold text-slate-900">{item.title}</p>
@@ -86,7 +86,7 @@ export default function CartPage() {
                 <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <button
                     type="button"
-                    onClick={() => updateQuantity(item.slug, item.quantity - 1)}
+                    onClick={() => updateQuantity(item.slug, item.quantity - 1, item.variantId)}
                     className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-[color:var(--brand-deep-green)]/35 hover:bg-[color:var(--brand-deep-green)]/10"
                   >
                     -
@@ -94,7 +94,7 @@ export default function CartPage() {
                   <span className="min-w-[2rem] rounded-full bg-slate-100 px-2.5 py-0.5 text-center text-sm font-semibold text-slate-900">{item.quantity}</span>
                   <button
                     type="button"
-                    onClick={() => updateQuantity(item.slug, item.quantity + 1)}
+                    onClick={() => updateQuantity(item.slug, item.quantity + 1, item.variantId)}
                     disabled={item.quantity >= maxProductStock}
                     title={item.quantity >= maxProductStock ? `Only ${maxProductStock} available` : "Increase quantity"}
                     className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-[color:var(--brand-deep-green)]/35 hover:bg-[color:var(--brand-deep-green)]/10"
@@ -103,7 +103,7 @@ export default function CartPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => removeItem(item.slug)}
+                    onClick={() => removeItem(item.slug, item.variantId)}
                     className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-[color:var(--brand-gold)] hover:text-[color:var(--brand-deep-green)]"
                   >
                     Remove

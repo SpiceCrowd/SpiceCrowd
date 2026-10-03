@@ -57,6 +57,7 @@ export default function ProductCard({ product }: { product: Product }) {
           disabled={product.stock === 0}
           item={{
             slug: product.slug,
+            variantId: product.sizeOptions?.[0]?.sku,
             title: product.title,
             price: parsePrice(product.price),
             priceLabel: product.price,

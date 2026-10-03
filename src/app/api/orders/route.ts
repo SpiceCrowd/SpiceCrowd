@@ -20,6 +20,7 @@ type Order = {
   id: string;
   items: Array<{
     slug: string;
+    variantId?: string;
     title?: string;
     quantity: number;
     price?: number;
@@ -81,6 +82,13 @@ function parseMoney(value: unknown): number {
 }
 
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { success: false, error: "Order creation is unavailable until verified live payments are configured." },
+      { status: 503 },
+    );
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const auth = req.headers.get('authorization') || req.headers.get('Authorization');
@@ -94,6 +102,7 @@ export async function POST(req: Request) {
           const unitPrice = parseMoney(it?.price ?? it?.priceLabel);
           return {
             slug: String(it?.slug || ""),
+            variantId: typeof it?.variantId === "string" ? it.variantId : undefined,
             title: typeof it?.title === "string" ? it.title : String(it?.slug || "Item"),
             quantity,
             price: unitPrice,

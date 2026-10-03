@@ -1,12 +1,12 @@
 "use client";
 
 import { useCart } from "./CartProvider";
-import { calculateCartTotals, formatCurrency } from "@/lib/cart";
+import { calculateCartTotals, cartLineKey, formatCurrency } from "@/lib/cart";
 import Link from "next/link";
 
-export default function CartSummary({ discount = 0 }: { discount?: number }) {
+export default function CartSummary({ discount = 0, shipping = 50 }: { discount?: number; shipping?: number }) {
   const { items, cartCount } = useCart();
-  const totals = calculateCartTotals(items, 50);
+  const totals = calculateCartTotals(items, shipping);
   const totalAfterDiscount = Math.max(0, totals.total - discount);
 
   if (!cartCount) {
@@ -29,7 +29,7 @@ export default function CartSummary({ discount = 0 }: { discount?: number }) {
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Order summary</p>
       <div className="mt-3.5 space-y-2">
         {items.map((item) => (
-          <div key={item.slug} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3.5 py-2.5">
+          <div key={cartLineKey(item)} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3.5 py-2.5">
             <div>
               <p className="font-semibold text-slate-950">{item.title}</p>
               <p className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-500">{item.quantity} × {item.priceLabel}</p>

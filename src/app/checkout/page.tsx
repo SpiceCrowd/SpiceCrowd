@@ -44,6 +44,7 @@ type StockIssue = {
 export default function CheckoutPage() {
   const { items, clearCart } = useCart();
   const router = useRouter();
+  const productionCheckoutDisabled = process.env.NODE_ENV === "production";
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -137,6 +138,10 @@ export default function CheckoutPage() {
   }, [items]);
 
   const handlePay = async (demoLineItems?: typeof items) => {
+    if (productionCheckoutDisabled) {
+      setError("Live checkout is unavailable. No payment or order was processed.");
+      return;
+    }
     setError(null);
     const checkoutItems = demoLineItems && demoLineItems.length > 0 ? demoLineItems : items;
     const checkoutTotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -363,7 +368,7 @@ export default function CheckoutPage() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-950">Payment</h2>
-                  <p className="mt-1 text-sm text-slate-500">Choose any non-COD payment method for this build.</p>
+                  <p className="mt-1 text-sm text-slate-500">{productionCheckoutDisabled ? "Live payment processing is not configured." : "Choose any non-COD payment method for this build."}</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Final step</span>
               </div>
@@ -372,9 +377,14 @@ export default function CheckoutPage() {
                   Add products to your cart to continue.
                 </p>
               )}
-              {!isCartEmpty && (
+              {!isCartEmpty && !productionCheckoutDisabled && (
                 <p className="brand-alert-soft mt-3 rounded-2xl border px-4 py-3 text-sm">
                   Demo mode active: checkout is using dummy payment only.
+                </p>
+              )}
+              {!isCartEmpty && productionCheckoutDisabled && (
+                <p role="status" className="brand-alert mt-3 rounded-2xl border px-4 py-3 text-sm">
+                  Live checkout is unavailable. No payment or order will be processed.
                 </p>
               )}
               {hasBlockingStock && !isCartEmpty && (
@@ -382,7 +392,7 @@ export default function CheckoutPage() {
                   Stock checks are skipped in dummy mode for testing.
                 </p>
               )}
-              <div className="mt-5 grid gap-3">
+              {!productionCheckoutDisabled && <div className="mt-5 grid gap-3">
                 {[
                   { id: "razorpay-card", label: "Card", note: "Visa, Mastercard, Rupay, Amex" },
                   { id: "razorpay-upi", label: "UPI", note: "Google Pay, PhonePe, Paytm, BHIM" },
@@ -404,8 +414,8 @@ export default function CheckoutPage() {
                     </div>
                   </label>
                 ))}
-              </div>
-              <div className="mt-5 rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4">
+              </div>}
+              {!productionCheckoutDisabled && <div className="mt-5 rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-slate-900">{selectedPaymentLabel} details</p>
                   <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Dummy entry</span>
@@ -481,16 +491,16 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-              </div>
+              </div>}
               <div className="mt-4">
                 <button
                   onClick={() => void handlePay()}
-                  disabled={loading || isCartEmpty || hasBlockingStock || !/^\d{6}$/.test(postal)}
+                  disabled={productionCheckoutDisabled || loading || isCartEmpty || hasBlockingStock || !/^\d{6}$/.test(postal)}
                   className="brand-btn w-full disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? 'Processing…' : `Pay ₹${payable}`}
                 </button>
-                <button
+                {!productionCheckoutDisabled && <button
                   onClick={() =>
                     void handlePay([
                       {
@@ -506,13 +516,13 @@ export default function CheckoutPage() {
                   className="brand-btn-outline mt-3 w-full disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? 'Processing…' : 'Start Demo Checkout'}
-                </button>
+                </button>}
               </div>
             </div>
           </div>
 
           <aside className="lg:sticky lg:top-24">
-              <CartSummary discount={calculateOrderTotal(totals.subtotal, couponCode, null, shippingCost).discount} />
+              <CartSummary shipping={shippingCost} discount={calculateOrderTotal(totals.subtotal, couponCode, null, shippingCost).discount} />
           </aside>
         </div>
         </div>

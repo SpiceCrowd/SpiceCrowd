@@ -8,15 +8,12 @@ Set these environment variables in production:
 - JWT_SECRET
 - ADMIN_EMAIL
 - ADMIN_PASSWORD
-- NEXT_PUBLIC_SITE_URL (`https://www.spicecrowd.in`)
+- NEXT_PUBLIC_SITE_URL (`https://www.spicecrowd.shop`)
 - NEXT_PUBLIC_MAP_URL
 
 ## 2. Payments
 
-Set payment keys:
-
-- RAZORPAY_KEY_ID
-- RAZORPAY_KEY_SECRET
+Live checkout is intentionally disabled in production. The current payment endpoint is a local demo flow, not a real payment integration. Do not enable real sales until a payment provider is integrated with server-side amount verification, signed webhook verification, and idempotent payment/order handling.
 
 ## 3. Email
 
@@ -32,18 +29,16 @@ Set email provider key:
 
 ## 5. Database
 
-- This repository currently uses SQLite and file-backed JSON storage for development.
-- Before accepting real orders, confirm Hostinger provides persistent storage for the configured database path, or migrate the Prisma datasource and migrations to a managed production database.
-- Configure `DATABASE_URL` in Hostinger and run Prisma migrations during deployment.
+- This repository currently uses SQLite and file-backed JSON storage for development and preview.
+- Before accepting real orders, migrate the Prisma datasource and order/inventory storage to a persistent production database.
+- Configure the production `DATABASE_URL` and run Prisma migrations during deployment.
 - Verify seed strategy before first release.
 
-## 6. Hostinger Node.js Web App
+## 6. Render Production Hosting
 
-- Import `SpiceCrowd/SpiceCrowd` from the `main` branch; the Next.js app is at the repository root.
-- Use Node.js 22 or newer supported by the hosting platform.
-- Build command: `npm run build`.
-- Start command: `npm run start`.
-- Attach `www.spicecrowd.in` after deployment and use the DNS records Hostinger provides.
+- The current Render Free service is a preview only. It can sleep when idle and its SQLite/file storage is temporary.
+- The canonical domain is `www.spicecrowd.shop`; DNS currently points the apex and `www` host to Render.
+- Move to a plan and database/storage configuration with persistent data before production use.
 
 ## 7. Build and Smoke Validation
 
@@ -67,7 +62,8 @@ Consolidated command:
 
 ## 9. Release Readiness
 
-- Confirm checkout success flow and stock-block flow.
+- Keep production checkout disabled until a real payment provider and persistent database are configured and verified.
+- Test payment success, failure, retry, webhook idempotency, stock reservation, and order ownership in a sandbox/staging environment only.
 - Confirm auth login/register/account route behavior.
 - Confirm footer and support links resolve correctly.
 
@@ -84,5 +80,6 @@ From workspace root (`spicecrowd/`) you can run:
 - Connect this GitHub repository in Render and create the service from `render.yaml`.
 - The Blueprint creates a free preview service and prompts for `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 - The free service uses temporary SQLite storage. Data can be lost on sleep, restart, or deploy; do not use it for real customer accounts or orders.
-- Configure a persistent production database and update the Prisma provider/schema before accepting real transactions.
-- Add `www.spicecrowd.in` as a custom domain in the Render service after the first successful deploy, then use the DNS values Render displays. Keep existing mail records and nameservers unchanged.
+- Production POST requests to payment and order creation return `503` until a real gateway is implemented.
+- Configure persistent production storage and real payment verification before enabling checkout.
+- `spicecrowd.shop` and `www.spicecrowd.shop` are attached as custom domains. Preserve email DNS records and nameservers when changing website records.

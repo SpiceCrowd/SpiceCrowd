@@ -1,6 +1,7 @@
 import { calculateOrderTotal } from "@/lib/orderUtils";
-import { calculateCartTotals } from "@/lib/cart";
+import { calculateCartTotals, cartLineKey } from "@/lib/cart";
 import { getProducts, inferProductCategory, matchesProductQuery, normalizeSizeOptions } from "@/lib/products";
+import { canViewOrder } from "@/lib/orderAccess";
 
 describe("calculateOrderTotal", () => {
   it("applies SPICE10 coupon and GST", () => {
@@ -63,6 +64,34 @@ describe("calculateCartTotals", () => {
     expect(totals.itemCount).toBe(3);
     expect(totals.shipping).toBe(50);
     expect(totals.total).toBe(260);
+  });
+});
+
+describe("cart line identity", () => {
+  it("keeps different variants of the same product separate", () => {
+    expect(cartLineKey({ slug: "turmeric", variantId: "TURMERIC-100G" })).not.toBe(
+      cartLineKey({ slug: "turmeric", variantId: "TURMERIC-250G" }),
+    );
+    expect(cartLineKey({ slug: "turmeric" })).toBe(cartLineKey({ slug: "turmeric" }));
+  });
+});
+
+describe("order access", () => {
+  const order = { userId: "customer-a", email: "a@example.com" };
+
+  it("allows the owner, a matching guest email, or an admin", () => {
+    expect(canViewOrder(order, "customer-a", "a@example.com", null, false)).toBe(true);
+    expect(canViewOrder(order, null, null, "A@example.com", false)).toBe(true);
+    expect(canViewOrder(order, null, null, null, true)).toBe(true);
+  });
+
+  it("denies anonymous and unrelated customers", () => {
+    expect(canViewOrder(order, null, null, null, false)).toBe(false);
+    expect(canViewOrder(order, "customer-b", "b@example.com", null, false)).toBe(false);
+  });
+
+  it("does not expose guest orders without an identity or matching email", () => {
+    expect(canViewOrder({ email: null }, null, null, null, false)).toBe(false);
   });
 });
 

@@ -23,6 +23,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     const priceLabel = selectedSize?.price || product.price;
     addItem({
       slug: product.slug,
+      variantId: selectedSize?.sku,
       title: product.title + (selectedSize ? ` • ${selectedSize.label}` : ""),
       price: parsePrice(priceLabel),
       priceLabel,
@@ -39,6 +40,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       }
       addItem({
         slug: match.slug,
+        variantId: match.sizeOptions?.[0]?.sku,
         title: match.title,
         price: parsePrice(match.price),
         priceLabel: match.price,
@@ -165,7 +167,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Price</p>
                 <p className="mt-1 text-3xl font-semibold text-slate-900">{selectedSize?.price || product.price}</p>
               </div>
-              <div className="rounded-full bg-[color:var(--brand-gold)]/26 px-3 py-1 text-sm font-semibold text-[color:var(--brand-deep-green)]">{product.rating} ★</div>
             </div>
             <div className="mt-5 space-y-3.5">
               <div className="space-y-2 rounded-[1rem] bg-slate-50 p-3.5 text-sm text-slate-600">
@@ -228,6 +229,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 disabled={selectedStock <= 0}
                 item={{
                   slug: product.slug,
+                  variantId: selectedSize?.sku,
                   title: product.title + (selectedSize ? ` • ${selectedSize.label}` : ""),
                   price: parsePrice(selectedSize?.price || product.price),
                   priceLabel: selectedSize?.price || product.price,
