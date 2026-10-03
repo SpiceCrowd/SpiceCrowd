@@ -43,7 +43,7 @@ export default function Footer() {
             <div className="mt-4 space-y-2 text-sm text-[color:var(--brand-gold)]/85">
               <a href={site.mapUrl} target="_blank" rel="noreferrer" className="block hover:text-[color:var(--brand-gold)]">{site.address.line1}, {site.address.city}, {site.address.state} {site.address.postcode}</a>
               <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="block hover:text-[color:var(--brand-gold)]">{site.phone}</a>
-              <a href={site.website} target="_blank" rel="noreferrer" className="block hover:text-[color:var(--brand-gold)]">www.spicecrowd.in</a>
+              <a href={site.website} target="_blank" rel="noreferrer" className="block hover:text-[color:var(--brand-gold)]">www.spicecrowd.shop</a>
             </div>
             <div className="mt-8">
               <p className="text-sm uppercase tracking-[0.35em] text-[color:var(--brand-gold)]/70">Accepted Payments</p>

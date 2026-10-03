@@ -19,7 +19,7 @@ services:
       - key: DATABASE_URL
         value: file:./dev.db
       - key: NEXT_PUBLIC_SITE_URL
-        value: https://www.spicecrowd.in
+        value: https://www.spicecrowd.shop
       - key: JWT_SECRET
         generateValue: true
       - key: ADMIN_EMAIL
