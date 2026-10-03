@@ -7,7 +7,7 @@ import { parsePrice } from "@/lib/cart";
 import type { getCombos } from "@/lib/homeData";
 
 // Every combo is a set of real catalogue products at their listed prices; there is no bundle discount.
-export default function ComboPacks({ combos }: { combos: ReturnType<typeof getCombos> }) {
+export default function ComboPacks({ combos, id = "combos", eyebrow = "Combo packs", heading = "Ready-made sets, one click" }: { combos: ReturnType<typeof getCombos>; id?: string; eyebrow?: string; heading?: string }) {
   const { addItem } = useCart();
   const [addedId, setAddedId] = useState<string | null>(null);
 
@@ -25,9 +25,9 @@ export default function ComboPacks({ combos }: { combos: ReturnType<typeof getCo
   };
 
   return (
-    <section id="combos" aria-labelledby="combos-heading" className="mx-auto max-w-7xl scroll-mt-32 px-4 sm:px-6 lg:px-8">
-      <p className="eyebrow">Combo packs</p>
-      <h2 id="combos-heading" className="section-heading mt-2">Ready-made sets, one click</h2>
+    <section id={id} aria-labelledby="combos-heading" className="mx-auto max-w-7xl scroll-mt-32 px-4 sm:px-6 lg:px-8">
+      <p className="eyebrow">{eyebrow}</p>
+      <h2 id="combos-heading" className="section-heading mt-2">{heading}</h2>
       <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">Each set adds real products to your cart at their listed 100g prices. You can change sizes and quantities in the cart.</p>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {combos.map((combo) => (

@@ -6,7 +6,7 @@ export default function FloatingActions() {
   };
 
   return (
-    <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-4">
+    <div className="floating-actions fixed bottom-8 right-8 z-50 flex flex-col gap-4">
       <button type="button" onClick={openSpicey} className="inline-flex items-center rounded-full bg-[color:var(--brand-deep-green)] px-5 py-3 text-sm font-semibold text-[color:var(--brand-gold)] shadow-xl shadow-black/20 transition hover:bg-[color:var(--brand-maroon-700)]">
         Ask Spicy
       </button>

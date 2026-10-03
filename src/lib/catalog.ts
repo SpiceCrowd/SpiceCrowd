@@ -23,7 +23,7 @@ export async function loadCatalog(): Promise<SearchableProduct[]> {
   if (prisma) {
     try {
       const dbProducts = (await getCachedCatalog(async () => {
-        const rows = await prisma.product.findMany({ orderBy: { createdAt: "desc" } });
+        const rows = await prisma.product.findMany({ orderBy: { createdAt: "desc" }, include: { images: { orderBy: { order: "asc" } } } });
         const bySlug = new Map(base.map((product) => [product.slug, product]));
         return rows.map((row) => {
           const known = bySlug.get(row.slug);
@@ -66,5 +66,7 @@ export async function loadCatalog(): Promise<SearchableProduct[]> {
     ...product,
     category: product.category || inferProductCategory(product),
     stock: typeof product.stock === "number" ? product.stock : 10,
+    // Stored overrides may hold raw sizes; checkout prices against the normalised ones, so the shop must show the same.
+    sizeOptions: normalizeSizeOptions({ slug: product.slug, price: product.price, sizeOptions: product.sizeOptions || [], stock: typeof product.stock === "number" ? product.stock : 10 }),
   }));
 }

@@ -1,7 +1,17 @@
 import { parsePrice } from "@/lib/cart";
 import type { Product } from "@/lib/products";
 
-export type SearchableProduct = Product & { category?: string; sku?: string | null; createdAt?: string | Date | null };
+export type SearchableProduct = Product & {
+  category?: string;
+  sku?: string | null;
+  createdAt?: string | Date | null;
+  // Present only on database-managed products.
+  mrp?: number | null;
+  images?: Array<{ url: string; alt?: string | null; order?: number }>;
+  isBestseller?: boolean;
+  isFeatured?: boolean;
+  isNewArrival?: boolean;
+};
 
 export type SearchItem = {
   slug: string;
