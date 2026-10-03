@@ -5,7 +5,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/home/Footer";
 import { trackingStatusLabels, type TrackingStatus } from "@/lib/tracking";
 
-type Order = { id: string; items: any[]; total: number; status: string; createdAt: string; tracking?: { courier?: string; trackingNumber?: string; status?: string } };
+type Order = { id: string; items: any[]; total: number; discount?: number; coupon?: { code?: string } | null; status: string; createdAt: string; tracking?: { courier?: string; trackingNumber?: string; status?: string } };
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -47,6 +47,7 @@ export default function OrdersPage() {
                 <div className="text-sm text-slate-600">{o.status}</div>
               </div>
               <div className="mt-2 text-sm text-slate-600">{new Date(o.createdAt).toLocaleString()}</div>
+              {Number(o.discount) > 0 && <div className="mt-3">Saved: ₹{o.discount}{o.coupon?.code ? ` (${o.coupon.code})` : ""}</div>}
               <div className="mt-3">Total: ₹{o.total}</div>
               <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
                 <p className="font-semibold">{o.tracking?.courier || "Dummy courier"} · {o.tracking?.trackingNumber || "Tracking will be assigned"}</p>

@@ -1,26 +1,19 @@
-﻿const categories = [
-  { title: "Whole Spices", icon: "🌰" },
-  { title: "Spice Powders", icon: "🟡" },
-  { title: "Blends & Masala", icon: "🌶️" },
-  { title: "Herbs", icon: "🌿" },
-  { title: "Seeds", icon: "🫘" },
-  { title: "Dry Fruits", icon: "🥭" },
-  { title: "Gift Packs", icon: "🎁" },
-];
+﻿import Link from "next/link";
+import { getCategorySummaries } from "@/lib/homeData";
 
 export default function Categories() {
+  const categories = getCategorySummaries();
   return (
-    <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-slate-900 sm:text-4xl">Shop by Category</h2>
-      </div>
-
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7">
+    <section aria-labelledby="categories-heading" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <p className="eyebrow">Explore</p>
+      <h2 id="categories-heading" className="section-heading mt-2">Shop by category</h2>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {categories.map((category) => (
-          <div key={category.title} className="flex flex-col items-center rounded-full bg-slate-100 p-4 text-center transition hover:-translate-y-0.5 hover:bg-slate-200">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white text-3xl shadow-sm">{category.icon}</div>
-            <h3 className="mt-3 text-sm font-semibold text-slate-800">{category.title}</h3>
-          </div>
+          <Link key={category.name} href={category.href} className="group flex flex-col justify-between rounded-2xl border border-[color:var(--brand-line)] bg-white p-5 transition hover:border-[color:var(--brand-gold)] hover:shadow-md">
+            <h3 className="text-lg font-semibold text-slate-900">{category.name}</h3>
+            <p className="mt-6 text-sm text-slate-600">{category.count} {category.count === 1 ? "product" : "products"} · from ₹{category.fromPrice}</p>
+            <p className="mt-2 text-sm font-semibold text-[color:var(--brand-deep-green)] group-hover:underline">Browse {category.name.toLowerCase()} →</p>
+          </Link>
         ))}
       </div>
     </section>

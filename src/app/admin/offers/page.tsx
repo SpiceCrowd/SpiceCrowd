@@ -223,7 +223,7 @@ export default function AdminOffersPage() {
                 options={[
                   { label: 'Percent', value: 'percent' },
                   { label: 'Flat', value: 'flat' },
-                  { label: 'BOGO', value: 'bogo' },
+                  { label: 'BOGO (not live: never applied at checkout)', value: 'bogo' },
                 ]}
               />
               <Select
@@ -304,7 +304,7 @@ export default function AdminOffersPage() {
                             options={[
                               { label: 'Percent', value: 'percent' },
                               { label: 'Flat', value: 'flat' },
-                              { label: 'BOGO', value: 'bogo' },
+                              { label: 'BOGO (not live: never applied at checkout)', value: 'bogo' },
                             ]}
                           />
                           <Select

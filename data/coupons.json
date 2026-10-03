@@ -26,6 +26,7 @@
     "usedCount": 64,
     "expiresAt": "2026-11-05T16:10:31.752Z",
     "status": "active",
+    "customer": "first_order",
     "createdAt": "2026-09-21T16:10:31.752Z",
     "updatedAt": "2026-09-21T16:10:31.752Z"
   }

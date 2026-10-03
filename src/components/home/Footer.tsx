@@ -6,7 +6,7 @@ export default function Footer() {
     quickLinks: [
       { label: "Home", href: "/" },
       { label: "All Spices", href: "/products" },
-      { label: "Combo Packs", href: "/#gift-packs" },
+      { label: "Combo Packs", href: "/#combos" },
       { label: "Recipes", href: "/support#recipes" },
       { label: "Loyalty Points", href: "/support#loyalty-points" },
       { label: "Refer and Earn", href: "/support#refer-and-earn" },
@@ -26,10 +26,7 @@ export default function Footer() {
       { label: "GST Updates", href: "/support#gst-updates" },
     ],
     connect: [
-      { label: "Instagram", href: "https://instagram.com", external: true },
-      { label: "Facebook", href: "https://facebook.com", external: true },
-      { label: "WhatsApp", href: "https://wa.me/919000000000", external: true },
-      { label: "Email Us", href: "mailto:support@spicecrowd@gmail.com", external: true },
+      { label: "WhatsApp", href: "https://wa.me/916374334813", external: true },
     ],
   };
 
@@ -53,7 +50,6 @@ export default function Footer() {
                 <span className="rounded-full bg-[color:var(--brand-maroon-700)] px-3 py-2">UPI</span>
                 <span className="rounded-full bg-[color:var(--brand-maroon-700)] px-3 py-2">GPay</span>
                 <span className="rounded-full bg-[color:var(--brand-maroon-700)] px-3 py-2">PhonePe</span>
-                <span className="rounded-full bg-[color:var(--brand-maroon-700)] px-3 py-2">COD</span>
               </div>
             </div>
           </div>

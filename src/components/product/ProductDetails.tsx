@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import type { Product } from "@/lib/products";
+import PromoStrip from "@/components/pricing/PromoStrip";
 
 type ProductDetailsData = Product & {
   badges?: string[];
@@ -70,7 +71,7 @@ export default function ProductDetails({ product }: { product: ProductDetailsDat
               </div>
 
               <div className="flex-1">
-                <div className="text-sm text-[color:var(--brand-deep-green)]">Free shipping above ₹500</div>
+                <PromoStrip kind="free_shipping" />
                 <div className="text-xs text-slate-500">Delivery by <strong>Tomorrow, 9 Aug</strong></div>
               </div>
             </div>

@@ -6,8 +6,9 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/home/Footer";
 import { useCart } from "@/components/cart/CartProvider";
 import CartSummary from "@/components/cart/CartSummary";
-import { calculateCartTotals, couponStorageKey } from "@/lib/cart";
-import { calculateOrderTotal } from "@/lib/orderUtils";
+import { couponStorageKey } from "@/lib/cart";
+import { shippingRates, type ShippingMethod } from "@/lib/promotionConfig";
+import { fetchQuote, useQuote } from "@/components/pricing/useQuote";
 
 type PaymentResponse = {
   paymentId?: string;
@@ -50,7 +51,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [postal, setPostal] = useState("");
-  const [shipping, setShipping] = useState("standard");
+  const [shipping, setShipping] = useState<ShippingMethod>("standard");
   const [paymentMethod, setPaymentMethod] = useState("razorpay-card");
   const [cardHolder, setCardHolder] = useState("");
   const [cardNumber, setCardNumber] = useState("");
@@ -64,9 +65,8 @@ export default function CheckoutPage() {
   const [stockIssues, setStockIssues] = useState<StockIssue[]>([]);
   const [couponCode, setCouponCode] = useState("");
 
-  const shippingCost = shipping === "express" ? 150 : 50;
-  const totals = calculateCartTotals(items, shippingCost);
-  const payable = calculateOrderTotal(totals.subtotal, couponCode, null, shippingCost).total;
+  const { quote, loading: quoteLoading, error: quoteError } = useQuote(items, shipping, couponCode);
+  const payable = quote?.total ?? 0;
   const hasBlockingStock = stockIssues.length > 0;
   const isCartEmpty = items.length === 0;
   const stepPillClass = "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]";
@@ -144,8 +144,6 @@ export default function CheckoutPage() {
     }
     setError(null);
     const checkoutItems = demoLineItems && demoLineItems.length > 0 ? demoLineItems : items;
-    const checkoutTotal = checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const checkoutPayable = calculateOrderTotal(checkoutTotal, couponCode, null, shippingCost).total;
 
     if (checkoutItems.length === 0) {
       setError("Your cart is empty. Add items before checkout.");
@@ -168,6 +166,11 @@ export default function CheckoutPage() {
     try {
       // create payment (mock)
       const token = typeof window !== 'undefined' ? localStorage.getItem('sc_token') : null;
+      const fresh = await fetchQuote(checkoutItems, shipping, couponCode, token);
+      if (!fresh.quote) throw new Error(fresh.error || 'Pricing is unavailable right now');
+      if (fresh.quote.coupon?.status === 'rejected') throw new Error(fresh.quote.coupon.message || 'Coupon is not available');
+      const checkoutPayable = fresh.quote.total;
+      const appliedCoupon = fresh.quote.coupon?.status === 'applied' ? fresh.quote.coupon.code : undefined;
       const payHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) payHeaders['authorization'] = `Bearer ${token}`;
       const paymentDetails =
@@ -200,10 +203,9 @@ export default function CheckoutPage() {
           customer: { name, phone, address, city, postal },
           items: checkoutItems,
           payment: { ...payJson, method: paymentMethod, details: paymentDetails },
-          shipping: { method: shipping, cost: shippingCost },
-          coupon: couponCode || undefined,
+          shipping: { method: shipping },
+          coupon: appliedCoupon,
           demoPayment: true,
-          total: checkoutPayable,
         }),
       });
 
@@ -219,16 +221,17 @@ export default function CheckoutPage() {
         const lastOrderPayload = {
           ...(orderJson?.order || {}),
           id: oid,
-          items: demoLineItems && demoLineItems.length > 0 ? demoLineItems : items,
-          total: checkoutPayable,
+          items: (orderJson?.order as { items?: unknown } | undefined)?.items || checkoutItems,
+          total: (orderJson?.order as { total?: number } | undefined)?.total ?? checkoutPayable,
           status: (orderJson?.order as { status?: string } | undefined)?.status || "paid",
           fulfillmentStatus: (orderJson?.order as { fulfillmentStatus?: string } | undefined)?.fulfillmentStatus || "processing",
           createdAt: (orderJson?.order as { createdAt?: string } | undefined)?.createdAt || new Date().toISOString(),
           customer: { name, phone, address, city, postal },
-          payment: { method: paymentMethod, provider: "dummy", details: paymentDetails },
-          shipping: { method: shipping, cost: shippingCost },
+          payment: { method: paymentMethod, provider: "dummy" },
+          shipping: (orderJson?.order as { shipping?: unknown } | undefined)?.shipping || { method: shipping },
         };
         window.localStorage.setItem("sc_last_order", JSON.stringify(lastOrderPayload));
+        window.localStorage.removeItem(couponStorageKey);
       }
 
       clearCart();
@@ -302,7 +305,7 @@ export default function CheckoutPage() {
                     <input type="radio" name="shipping" checked={shipping === 'standard'} onChange={() => setShipping('standard')} className="mt-1 h-4 w-4 accent-[color:var(--brand-maroon)]" />
                     <div>
                       <p className="font-semibold text-slate-950">Standard</p>
-                      <p className="mt-1 text-sm text-slate-600">₹50 · 3-5 days</p>
+                      <p className="mt-1 text-sm text-slate-600">₹{shippingRates.standard} · 3-5 days</p>
                     </div>
                   </div>
                 </label>
@@ -311,7 +314,7 @@ export default function CheckoutPage() {
                     <input type="radio" name="shipping" checked={shipping === 'express'} onChange={() => setShipping('express')} className="mt-1 h-4 w-4 accent-[color:var(--brand-maroon)]" />
                     <div>
                       <p className="font-semibold text-slate-950">Express</p>
-                      <p className="mt-1 text-sm text-slate-600">₹150 · 1-2 days</p>
+                      <p className="mt-1 text-sm text-slate-600">₹{shippingRates.express} · 1-2 days</p>
                     </div>
                   </div>
                 </label>
@@ -495,10 +498,10 @@ export default function CheckoutPage() {
               <div className="mt-4">
                 <button
                   onClick={() => void handlePay()}
-                  disabled={productionCheckoutDisabled || loading || isCartEmpty || hasBlockingStock || !/^\d{6}$/.test(postal)}
+                  disabled={productionCheckoutDisabled || loading || quoteLoading || !quote || isCartEmpty || hasBlockingStock || !/^\d{6}$/.test(postal)}
                   className="brand-btn w-full disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? 'Processing…' : `Pay ₹${payable}`}
+                  {loading ? 'Processing…' : quote ? `Pay ₹${payable}` : 'Calculating total…'}
                 </button>
                 {!productionCheckoutDisabled && <button
                   onClick={() =>
@@ -522,7 +525,7 @@ export default function CheckoutPage() {
           </div>
 
           <aside className="lg:sticky lg:top-24">
-              <CartSummary shipping={shippingCost} discount={calculateOrderTotal(totals.subtotal, couponCode, null, shippingCost).discount} />
+              <CartSummary quote={quote} quoteLoading={quoteLoading} quoteError={quoteError} />
           </aside>
         </div>
         </div>

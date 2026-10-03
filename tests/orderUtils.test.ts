@@ -4,20 +4,17 @@ import { getProducts, inferProductCategory, matchesProductQuery, normalizeSizeOp
 import { canViewOrder } from "@/lib/orderAccess";
 
 describe("calculateOrderTotal", () => {
-  it("applies SPICE10 coupon and GST", () => {
-    const res = calculateOrderTotal(1000, "SPICE10", "22AAAAA0000A1Z5", 50);
-    // subtotal 1000, 10% discount = 100, tax on 900 = 162, delivery 50, total = 1000-100+162+50 = 1112
+  it("applies a validated discount and GST", () => {
+    const res = calculateOrderTotal(1000, 100, "22AAAAA0000A1Z5", 50);
     expect(res.discount).toBe(100);
     expect(res.tax).toBe(162);
     expect(res.total).toBe(1112);
   });
 
-  it("applies FIRST20 coupon without GST", () => {
-    const res = calculateOrderTotal(500, "FIRST20", null, 99);
-    // 20% of 500 = 100 discount, tax 0, total = 500-100+99 = 499
-    expect(res.discount).toBe(100);
-    expect(res.tax).toBe(0);
-    expect(res.total).toBe(499);
+  it("caps discounts at the order subtotal", () => {
+    const res = calculateOrderTotal(500, 750, null, 99);
+    expect(res.discount).toBe(500);
+    expect(res.total).toBe(99);
   });
 
   it("uses a configured product tax rate when GSTIN is supplied", () => {

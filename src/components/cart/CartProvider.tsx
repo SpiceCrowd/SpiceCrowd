@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AddToCartPayload, CartItem } from "@/lib/cart";
 import { calculateCartTotals, cartLineKey, cartStorageKey, maxProductStock } from "@/lib/cart";
 
@@ -32,22 +32,29 @@ function parseStoredCart() {
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(EMPTY_CART);
+  // Mutations read this so several calls in the same tick build on each other.
+  const itemsRef = useRef<CartItem[]>(EMPTY_CART);
 
   useEffect(() => {
-    const load = () => setItems(parseStoredCart());
+    const load = () => {
+      const stored = parseStoredCart();
+      itemsRef.current = stored;
+      setItems(stored);
+    };
     load();
     window.addEventListener("storage", load);
     return () => window.removeEventListener("storage", load);
   }, []);
 
   const writeCart = (nextItems: CartItem[]) => {
+    itemsRef.current = nextItems;
     setItems(nextItems);
     window.localStorage.setItem(cartStorageKey, JSON.stringify(nextItems));
   };
 
   const addItem = (item: AddToCartPayload) => {
     const quantityToAdd = item.quantity ?? 1;
-    const currentItems = items;
+    const currentItems = itemsRef.current;
     const itemKey = cartLineKey(item);
     const existing = currentItems.find((cartItem) => cartLineKey(cartItem) === itemKey);
     const nextQuantity = Math.min(maxProductStock, (existing?.quantity || 0) + quantityToAdd);
@@ -63,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (slug: string, quantity: number, variantId?: string) => {
-    const nextItems = items
+    const nextItems = itemsRef.current
         .map((item) => (item.slug === slug && item.variantId === variantId ? { ...item, quantity: Math.min(maxProductStock, quantity) } : item))
         .filter((item) => item.quantity > 0);
 
@@ -71,7 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeItem = (slug: string, variantId?: string) => {
-    writeCart(items.filter((item) => item.slug !== slug || item.variantId !== variantId));
+    writeCart(itemsRef.current.filter((item) => item.slug !== slug || item.variantId !== variantId));
   };
 
   const clearCart = () => {

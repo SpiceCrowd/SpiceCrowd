@@ -50,27 +50,9 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   };
 
   const comboPacks = [
-    {
-      title: "Essential Combo",
-      description: "10 essential spices for everyday cooking.",
-      price: "₹999",
-      badge: "Popular",
-      items: ["Turmeric", "Black Pepper", "Ginger"],
-    },
-    {
-      title: "3-Month Family Pack",
-      description: "A curated 3-month supply for a family of 5.",
-      price: "₹2,699",
-      badge: "Best Value",
-      items: ["Turmeric", "Black Pepper", "Coriander", "Ginger"],
-    },
-    {
-      title: "Yearly Family Pack",
-      description: "Full year spice subscription with premium savings.",
-      price: "₹8,999",
-      badge: "Ultimate",
-      items: ["Turmeric", "Black Pepper", "Cinnamon", "Cloves", "Cardamom"],
-    },
+    { title: "Everyday basics", items: ["Turmeric", "Black Pepper", "Ginger"] },
+    { title: "Curry and gravy set", items: ["Turmeric", "Black Pepper", "Coriander", "Ginger"] },
+    { title: "Warm spice set", items: ["Black Pepper", "Cinnamon", "Cloves"] },
   ];
 
   return (
@@ -142,7 +124,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                   <div key={pack.title} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-slate-900">{pack.title}</p>
-                      <p className="text-xs text-slate-500">{pack.price} • {pack.badge}</p>
+                      <p className="text-xs text-slate-500">{pack.items.join(", ")} at regular prices</p>
                     </div>
                     <button
                       type="button"

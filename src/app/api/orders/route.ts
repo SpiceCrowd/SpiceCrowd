@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readJson, updateJson } from "@/lib/storage";
-import { calculateOrderTotal } from "@/lib/orderUtils";
+import { buildQuote, parseShippingMethod } from "@/lib/pricingService";
+import type { AppliedPromotion } from "@/lib/promotions";
 import { verifyToken, isAdmin } from "@/lib/auth";
 import { createDummyTracking } from "@/lib/tracking";
 import { isValidEmail, notifyEmail } from "@/lib/notifications";
@@ -29,6 +30,8 @@ type Order = {
   }>;
   subtotal?: number;
   discount?: number;
+  coupon?: { code: string; title: string; discount: number } | null;
+  promotions?: AppliedPromotion[];
   tax?: number;
   delivery?: number;
   total: number;
@@ -45,6 +48,8 @@ type Order = {
   shipping?: {
     method?: string;
     cost?: number;
+    baseCost?: number;
+    discount?: number;
   };
   payment?: {
     provider?: string;
@@ -65,20 +70,22 @@ async function upsertOrderSnapshot(order: Order) {
   });
 }
 
-function parseMoney(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
+type UsageCoupon = { code: string; usageLimit: number; usedCount: number };
 
-  if (typeof value === "string") {
-    const cleaned = value.replace(/[^\d.]/g, "").trim();
-    const parsed = Number(cleaned);
-    if (Number.isFinite(parsed)) {
-      return parsed;
+// Re-checks the limit inside the locked update so concurrent orders cannot exceed it.
+async function changeCouponUsage(code: string, delta: 1 | -1) {
+  let changed = false;
+  await updateJson<UsageCoupon[]>("coupons.json", [], (coupons) => coupons.map((coupon) => {
+    if (coupon.code.toUpperCase() !== code.toUpperCase()) return coupon;
+    if (delta === 1) {
+      if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) return coupon;
+      changed = true;
+      return { ...coupon, usedCount: coupon.usedCount + 1 };
     }
-  }
-
-  return 0;
+    changed = true;
+    return { ...coupon, usedCount: Math.max(0, coupon.usedCount - 1) };
+  }));
+  return changed;
 }
 
 export async function POST(req: Request) {
@@ -89,6 +96,7 @@ export async function POST(req: Request) {
     );
   }
 
+  let reservedCouponCode: string | null = null;
   try {
     const body = await req.json().catch(() => ({}));
     const auth = req.headers.get('authorization') || req.headers.get('Authorization');
@@ -96,30 +104,20 @@ export async function POST(req: Request) {
     const userId = tokenPayload?.sub || tokenPayload?.uid || null;
     const userEmail = tokenPayload?.email || null;
 
-    const items = Array.isArray(body.items)
-      ? body.items.map((it: any) => {
-          const quantity = Math.max(1, Number(it?.quantity ?? 1));
-          const unitPrice = parseMoney(it?.price ?? it?.priceLabel);
-          return {
-            slug: String(it?.slug || ""),
-            variantId: typeof it?.variantId === "string" ? it.variantId : undefined,
-            title: typeof it?.title === "string" ? it.title : String(it?.slug || "Item"),
-            quantity,
-            price: unitPrice,
-            priceLabel: typeof it?.priceLabel === "string" ? it.priceLabel : undefined,
-            gstPercent: typeof it?.gstPercent === "number" ? it.gstPercent : undefined,
-            lineTotal: unitPrice * quantity,
-          };
-        })
-      : [];
-
-    const computedSubtotal = items.reduce((sum: number, item: { lineTotal?: number }) => sum + (item.lineTotal || 0), 0);
-    const subtotal = computedSubtotal > 0 ? computedSubtotal : Number(body.total || 0);
+    const couponInput = typeof body.coupon === "string" ? body.coupon : body.coupon?.code;
     const gstin = body?.address?.gstin || body?.gstin || null;
-    const delivery = Number(body?.shipping?.cost ?? body.delivery ?? 50);
-    const configuredTaxRates = items.map((item: { gstPercent?: number }) => item.gstPercent).filter((rate: number | undefined): rate is number => typeof rate === "number" && rate >= 0);
-    const configuredTaxRate = configuredTaxRates.length ? configuredTaxRates.reduce((sum: number, rate: number) => sum + rate, 0) / configuredTaxRates.length : undefined;
-    const calc = calculateOrderTotal(subtotal, body.coupon, gstin, delivery, configuredTaxRate);
+    const shippingMethod = parseShippingMethod(body?.shipping?.method);
+    // Discounts, shipping and totals are always recomputed here; client-sent amounts are ignored.
+    const built = await buildQuote({ items: body.items, coupon: couponInput, shippingMethod, gstin, authorization: auth });
+    if (!built.ok) return NextResponse.json({ success: false, error: built.error }, { status: 400 });
+    const { items, quote } = built;
+    if (quote.coupon?.status === "rejected") {
+      return NextResponse.json({ success: false, error: quote.coupon.message || "Coupon is not available" }, { status: 422 });
+    }
+    const couponResult = quote.coupon?.status === "applied" ? quote.coupon : null;
+    const couponSnapshot = couponResult ? { code: couponResult.code, title: couponResult.title || couponResult.code, discount: couponResult.discount || 0 } : null;
+    const calc = { subtotal: quote.subtotal, discount: quote.discount, tax: quote.tax, delivery: quote.shipping.cost, total: quote.total };
+    const shippingSnapshot = { method: shippingMethod, cost: quote.shipping.cost, baseCost: quote.shipping.baseCost, discount: quote.shipping.discount };
 
     // Payment and inventory are verified before an order is confirmed.
     const prisma = await getPrisma();
@@ -139,6 +137,12 @@ export async function POST(req: Request) {
     if (paymentSuccessful && inventoryItems.length && !inventoryReserved.reserved) {
       return NextResponse.json({ success: false, error: inventoryReserved.error || "inventory unavailable" }, { status: 400 });
     }
+    if (paymentSuccessful && couponResult) {
+      if (!await changeCouponUsage(couponResult.code, 1)) {
+        return NextResponse.json({ success: false, error: "This coupon has reached its usage limit" }, { status: 409 });
+      }
+      reservedCouponCode = couponResult.code;
+    }
     const orderStatus = paymentSuccessful ? "paid" : "payment_pending";
     const fulfillmentStatus = paymentSuccessful ? "processing" : "awaiting_payment";
 
@@ -155,6 +159,8 @@ export async function POST(req: Request) {
         items,
         subtotal: calc.subtotal,
         discount: calc.discount,
+        coupon: couponSnapshot,
+        promotions: quote.promotions,
         tax: calc.tax,
         delivery: calc.delivery,
         total: calc.total,
@@ -168,10 +174,7 @@ export async function POST(req: Request) {
           city: body?.customer?.city || "",
           postal: body?.customer?.postal || "",
         },
-        shipping: {
-          method: body?.shipping?.method || "standard",
-          cost: Number(body?.shipping?.cost ?? calc.delivery),
-        },
+        shipping: shippingSnapshot,
         payment: {
           provider: body?.payment?.provider || "mock",
           paymentId: body?.payment?.paymentId || null,
@@ -183,6 +186,7 @@ export async function POST(req: Request) {
         tracking: createDummyTracking(order.id),
       };
       await upsertOrderSnapshot(snapshot);
+      reservedCouponCode = null;
 
       const confirmationEmail = userEmail || body?.email || body?.customer?.email;
       if (isValidEmail(confirmationEmail)) await notifyEmail({ to: confirmationEmail, subject: `Order ${order.id} confirmation`, text: `Your Spice Crowd order ${order.id} was received. Total: INR ${calc.total}.`, key: `order-confirmation:${order.id}` });
@@ -198,6 +202,8 @@ export async function POST(req: Request) {
       items,
       subtotal: calc.subtotal,
       discount: calc.discount,
+      coupon: couponSnapshot,
+      promotions: quote.promotions,
       tax: calc.tax,
       delivery: calc.delivery,
       total: calc.total,
@@ -211,10 +217,7 @@ export async function POST(req: Request) {
         city: body?.customer?.city || "",
         postal: body?.customer?.postal || "",
       },
-      shipping: {
-        method: body?.shipping?.method || "standard",
-        cost: Number(body?.shipping?.cost ?? calc.delivery),
-      },
+      shipping: shippingSnapshot,
       payment: {
         provider: body?.payment?.provider || "mock",
         paymentId: body?.payment?.paymentId || null,
@@ -227,12 +230,14 @@ export async function POST(req: Request) {
     };
 
     await updateJson<Order[]>("orders.json", [], (orders) => [...orders, order]);
+    reservedCouponCode = null;
 
     const confirmationEmail = userEmail || body?.email || body?.customer?.email;
     if (isValidEmail(confirmationEmail)) await notifyEmail({ to: confirmationEmail, subject: `Order ${orderId} confirmation`, text: `Your Spice Crowd order ${orderId} was received. Total: INR ${calc.total}.`, key: `order-confirmation:${orderId}` });
 
     return NextResponse.json({ success: true, orderId, order, discount: calc.discount, delivery: calc.delivery, tax: calc.tax });
   } catch (err) {
+    if (reservedCouponCode) await changeCouponUsage(reservedCouponCode, -1).catch(() => false);
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });
   }
 }

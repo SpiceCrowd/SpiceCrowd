@@ -21,14 +21,15 @@ export type Product = {
   stock?: number;
 };
 
+// Title and slug only: descriptions mention "blends" and "packs" in passing and would misfile whole spices.
 export function inferProductCategory(product: Pick<Product, "title" | "slug" | "description">): string {
-  const haystack = `${product.title} ${product.slug} ${product.description}`.toLowerCase();
+  const haystack = `${product.title} ${product.slug}`.toLowerCase();
 
-  if (/powder|ground|masala|blend|kit|pack|gift|combo/.test(haystack)) {
-    if (/powder|ground/.test(haystack)) return "Powders";
-    if (/masala|blend/.test(haystack)) return "Blends & Masala";
-    if (/kit|pack|gift|combo/.test(haystack)) return "Gift Packs";
-  }
+  if (/honey/.test(haystack)) return "Honey";
+  if (/coffee/.test(haystack)) return "Coffee";
+  if (/powder|ground/.test(haystack)) return "Powders";
+  if (/masala|blend|mix/.test(haystack)) return "Blends & Masala";
+  if (/\b(kit|pack|gift|combo)\b/.test(haystack)) return "Gift Packs";
 
   return "Whole Spices";
 }

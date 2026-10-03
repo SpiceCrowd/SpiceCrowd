@@ -21,6 +21,10 @@ type OrderView = {
   createdAt?: string;
   total?: number;
   subtotal?: number;
+  discount?: number;
+  delivery?: number;
+  promotions?: Array<{ id: string; title: string; code?: string; kind: string; amount: number }>;
+  shipping?: { method?: string; cost?: number; baseCost?: number; discount?: number };
   tax?: number;
   customer?: {
     name?: string;
@@ -135,8 +139,12 @@ export default function TrackPage() {
 
   const computedSubtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
   const subtotal = Number(order?.subtotal ?? computedSubtotal);
-  const tax = Number(order?.tax ?? Math.round(subtotal * 0.05));
-  const grandTotal = Number(order?.total ?? subtotal + tax);
+  const discountPromotions = (order?.promotions || []).filter((promo) => promo.kind === "discount");
+  const discount = Number(order?.discount ?? 0);
+  const delivery = Number(order?.delivery ?? order?.shipping?.cost ?? 0);
+  const shippingWaived = Number(order?.shipping?.discount ?? 0);
+  const tax = Number(order?.tax ?? 0);
+  const grandTotal = Number(order?.total ?? subtotal - discount + delivery + tax);
   const invoiceDate = order?.createdAt ? new Date(order.createdAt) : new Date();
   const invoiceNumber = order?.id ? order.id.replace(/^ORDER_/, "SC/") : "SC/NEW";
   const paymentMode = (order?.payment?.method || "upi").toUpperCase();
@@ -297,10 +305,22 @@ export default function TrackPage() {
                     <span>Sub Total</span>
                     <span>{formatCurrency(subtotal)}</span>
                   </div>
+                  {discount > 0 && (discountPromotions.length ? discountPromotions : [{ id: "discount", title: "Discount", code: undefined, kind: "discount", amount: discount }]).map((promo) => (
+                    <div key={promo.id} className="flex items-center justify-between border-b border-[color:var(--brand-gold)]/30 bg-[#06281a]/90 px-3.5 py-2.5">
+                      <span>{promo.code ? `Coupon ${promo.code}` : promo.title}</span>
+                      <span>-{formatCurrency(promo.amount)}</span>
+                    </div>
+                  ))}
                   <div className="flex items-center justify-between border-b border-[color:var(--brand-gold)]/30 bg-[#06281a]/90 px-3.5 py-2.5">
-                    <span>GST (5%)</span>
-                    <span>{formatCurrency(tax)}</span>
+                    <span>Delivery</span>
+                    <span>{shippingWaived > 0 && delivery === 0 ? "Free" : formatCurrency(delivery)}</span>
                   </div>
+                  {tax > 0 && (
+                    <div className="flex items-center justify-between border-b border-[color:var(--brand-gold)]/30 bg-[#06281a]/90 px-3.5 py-2.5">
+                      <span>GST</span>
+                      <span>{formatCurrency(tax)}</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between bg-[color:var(--brand-gold)] px-3.5 py-3 text-base font-black text-[#052113] sm:text-lg">
                     <span>Total</span>
                     <span>{formatCurrency(grandTotal)}</span>

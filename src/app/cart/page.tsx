@@ -3,36 +3,41 @@
 import { useEffect, useState } from "react";
 import { useCart } from "@/components/cart/CartProvider";
 import { calculateCartTotals, cartLineKey, couponStorageKey, formatCurrency, maxProductStock } from "@/lib/cart";
+import { normalizeCouponCode } from "@/lib/promotions";
+import { useQuote } from "@/components/pricing/useQuote";
+import QuoteBreakdown from "@/components/pricing/QuoteBreakdown";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/home/Footer";
 
 export default function CartPage() {
   const { items, cartCount, updateQuantity, removeItem, clearCart } = useCart();
-  const totals = calculateCartTotals(items, 50);
+  const totals = calculateCartTotals(items, 0);
   const [couponCode, setCouponCode] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [couponMessage, setCouponMessage] = useState("");
-  const discountedSubtotal = Math.max(0, totals.subtotal - discount);
-  const grandTotal = discountedSubtotal + totals.shipping;
+  const [couponInput, setCouponInput] = useState("");
+  const { quote, loading, error } = useQuote(items, "standard", couponCode);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setCouponCode(window.localStorage.getItem(couponStorageKey) || ""), 0);
+    const timer = window.setTimeout(() => {
+      const stored = window.localStorage.getItem(couponStorageKey) || "";
+      setCouponCode(stored);
+      setCouponInput(stored);
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
-  async function applyCoupon() {
-    const response = await fetch("/api/coupons", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: couponCode }) });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.valid) {
-      setDiscount(0);
-      setCouponMessage(data.error || "Invalid coupon");
-      return;
-    }
-    const nextDiscount = Math.round(totals.subtotal * Number(data.discountPercent || 0) / 100);
-    setDiscount(nextDiscount);
-    window.localStorage.setItem(couponStorageKey, couponCode.toUpperCase());
-    setCouponMessage(`${couponCode.toUpperCase()} applied: ₹${nextDiscount} off`);
+  function applyCoupon() {
+    const code = normalizeCouponCode(couponInput);
+    setCouponCode(code);
+    setCouponInput(code);
+    if (code) window.localStorage.setItem(couponStorageKey, code);
+    else window.localStorage.removeItem(couponStorageKey);
+  }
+
+  function removeCoupon() {
+    setCouponCode("");
+    setCouponInput("");
+    window.localStorage.removeItem(couponStorageKey);
   }
 
   if (!cartCount) {
@@ -129,30 +134,18 @@ export default function CartPage() {
                 <span>Items</span>
                 <span>{totals.itemCount}</span>
               </div>
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <span>Subtotal</span>
-                <span>{formatCurrency(totals.subtotal)}</span>
-              </div>
               <div className="flex gap-2">
-                <input value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Coupon code" className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-                <button type="button" onClick={() => void applyCoupon()} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">Apply</button>
+                <input value={couponInput} onChange={(event) => setCouponInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") applyCoupon(); }} placeholder="Coupon code" aria-label="Coupon code" className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <button type="button" onClick={applyCoupon} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">Apply</button>
+                {couponCode && <button type="button" onClick={removeCoupon} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">Remove</button>}
               </div>
-              {discount > 0 && <div className="flex items-center justify-between text-sm text-emerald-700"><span>Discount</span><span>-{formatCurrency(discount)}</span></div>}
-              {couponMessage && <p className="text-xs text-slate-500">{couponMessage}</p>}
-              <div className="flex items-center justify-between text-sm text-slate-600">
-                <span>Delivery</span>
-                <span>{formatCurrency(totals.shipping)}</span>
-              </div>
-              <div className="border-t border-slate-200 pt-2.5 text-lg font-semibold text-slate-900">
-                <div className="flex items-center justify-between">
-                  <span>Total</span>
-                  <span>{formatCurrency(grandTotal)}</span>
-                </div>
-              </div>
+              {quote?.coupon?.status === "applied" && <p className="text-xs text-emerald-700">{quote.coupon.code} applied: {formatCurrency(quote.coupon.discount || 0)} off</p>}
+              <QuoteBreakdown quote={quote} loading={loading} error={error} />
             </div>
             <Link
               href="/checkout"
-              className="brand-btn mt-4 w-full justify-center px-6 hover:-translate-y-0.5"
+              aria-disabled={!quote || Boolean(error)}
+              className={`brand-btn mt-4 w-full justify-center px-6 hover:-translate-y-0.5 ${!quote || error ? "pointer-events-none opacity-60" : ""}`}
             >
               Proceed to checkout
             </Link>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import ProductCard from "@/components/products/ProductCard";
 import type { Product } from "@/lib/products";
+import PromoStrip from "@/components/pricing/PromoStrip";
 
 export default function ProductCatalog({ products }: { products: Product[] }) {
   const [sort, setSort] = useState("featured");
@@ -48,6 +49,8 @@ export default function ProductCatalog({ products }: { products: Product[] }) {
           </label>
         </div>
       </div>
+
+      <PromoStrip className="mt-4" />
 
       {visibleProducts.length === 0 ? (
         <div className="empty-state mt-6">

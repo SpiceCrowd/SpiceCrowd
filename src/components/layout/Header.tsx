@@ -8,8 +8,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 const navItems = [
   { label: "Home", href: "/" },
   { label: "Spices", href: "/products" },
-  { label: "Masalas", href: "/#masalas" },
-  { label: "Gift Packs", href: "/#gift-packs" },
+  { label: "Masalas", href: "/products?category=Blends%20%26%20Masala" },
+  { label: "Combo Packs", href: "/#combos" },
   { label: "Offers", href: "/#offers" },
   { label: "About Us", href: "/#about-us" },
 ];
@@ -33,14 +33,16 @@ export default function Header() {
         </div>
 
         <div className="hidden flex-1 items-center justify-center lg:flex">
-          <div className="flex w-full max-w-xl items-center overflow-hidden rounded-xl border border-[color:var(--brand-line)] bg-white shadow-sm">
+          <form action="/products" method="get" role="search" className="flex w-full max-w-xl items-center overflow-hidden rounded-xl border border-[color:var(--brand-line)] bg-white shadow-sm">
             <input
+              name="q"
+              type="search"
               aria-label="Search for spices"
               placeholder="Search for spices, masalas, coffee..."
               className="w-full bg-transparent px-4 py-3 text-sm text-slate-700 placeholder:text-slate-500 focus:outline-none"
             />
-            <button className="flex h-12 w-12 items-center justify-center bg-[color:var(--brand-deep-green)] text-xl text-[color:var(--brand-gold)] transition hover:bg-[color:var(--brand-maroon-700)]">⌕</button>
-          </div>
+            <button type="submit" aria-label="Search" className="flex h-12 w-12 items-center justify-center bg-[color:var(--brand-deep-green)] text-xl text-[color:var(--brand-gold)] transition hover:bg-[color:var(--brand-maroon-700)]">⌕</button>
+          </form>
         </div>
 
         <div className="flex items-center gap-3 md:gap-4">
@@ -77,6 +79,10 @@ export default function Header() {
               {item.label}
             </a>
           ))}
+          <form action="/products" method="get" role="search" className="flex gap-2 pt-2 md:hidden lg:hidden">
+            <input name="q" type="search" aria-label="Search for spices" placeholder="Search spices" className="min-w-0 flex-1 rounded-lg border border-[color:var(--brand-line)] bg-white px-3 py-2 text-sm" />
+            <button type="submit" className="rounded-lg bg-[color:var(--brand-deep-green)] px-4 py-2 text-sm font-semibold text-white">Search</button>
+          </form>
           <div className="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 md:hidden">
             <a href="/account" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2">{accountLabel}</a>
             <a href="/wishlist" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2">Wishlist</a>

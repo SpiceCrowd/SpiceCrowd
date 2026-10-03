@@ -1,89 +1,55 @@
 ﻿"use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import { useCart } from "@/components/cart/CartProvider";
 import { parsePrice } from "@/lib/cart";
+import type { getCombos } from "@/lib/homeData";
 
-const packs = [
-  {
-    title: "Essential Combo",
-    description: "10 Spices Pack",
-    price: "₹999",
-    badge: "Popular",
-    features: ["10 essential daily spices", "Serves family of 5", "Free delivery"],
-  },
-  {
-    title: "3-Month Family Pack",
-    description: "10 Spices x 3 Months",
-    price: "₹2,699",
-    badge: "Best Value",
-    features: ["10 spices in bulk", "Lasts 3 months", "Includes rare spice bonus"],
-    highlight: true,
-  },
-  {
-    title: "6-Month Family Pack",
-    description: "10 Spices x 6 Months",
-    price: "₹4,999",
-    badge: "Premium",
-    features: ["10 spices large qty", "Lasts 6 months", "Priority delivery"],
-  },
-  {
-    title: "Yearly Family Pack",
-    description: "10 Spices x 12 Months",
-    price: "₹8,999",
-    badge: "Ultimate",
-    features: ["Full year supply", "2 rare spices", "Festival bonus"],
-  },
-];
-
-export default function ComboPacks() {
+// Every combo is a set of real catalogue products at their listed prices; there is no bundle discount.
+export default function ComboPacks({ combos }: { combos: ReturnType<typeof getCombos> }) {
   const { addItem } = useCart();
+  const [addedId, setAddedId] = useState<string | null>(null);
 
-  const addPackToCart = (pack: (typeof packs)[number]) => {
-    addItem({
-      slug: `combo-${pack.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-      title: pack.title,
-      price: parsePrice(pack.price),
-      priceLabel: pack.price,
+  const addCombo = (combo: ReturnType<typeof getCombos>[number]) => {
+    combo.items.forEach((product) => addItem({
+      slug: product.slug,
+      variantId: product.sizeOptions?.[0]?.sku,
+      title: product.title,
+      price: parsePrice(product.price),
+      priceLabel: product.price,
       quantity: 1,
-    });
+    }));
+    setAddedId(combo.id);
+    window.setTimeout(() => setAddedId((current) => (current === combo.id ? null : current)), 2500);
   };
 
   return (
-    <section className="reveal mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="eyebrow">Spice Combo Packs</p>
-        <h2 className="section-heading mt-3">Complete spice sets for your family of 5</h2>
-      </div>
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {packs.map((pack) => (
-          <div
-            key={pack.title}
-            className={`surface-lift rounded-2xl border p-6 shadow-sm ${pack.highlight ? "border-[color:var(--brand-gold)]/55 bg-[color:var(--brand-gold)]/12" : "border-[color:var(--brand-line)] bg-white"}`}
-          >
-            <span className="inline-flex rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-slate-600">
-              {pack.badge}
-            </span>
-            <h3 className="mt-6 text-2xl font-semibold text-slate-900">{pack.title}</h3>
-            <p className="mt-2 text-sm text-slate-500">{pack.description}</p>
-            <p className="mt-6 text-3xl font-bold text-slate-900">{pack.price}</p>
-            <ul className="mt-6 space-y-3 text-sm leading-6 text-slate-600">
-              {pack.features.map((feature) => (
-                <li key={feature} className="flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--brand-deep-green)]" />
-                  {feature}
+    <section id="combos" aria-labelledby="combos-heading" className="mx-auto max-w-7xl scroll-mt-32 px-4 sm:px-6 lg:px-8">
+      <p className="eyebrow">Combo packs</p>
+      <h2 id="combos-heading" className="section-heading mt-2">Ready-made sets, one click</h2>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">Each set adds real products to your cart at their listed 100g prices. You can change sizes and quantities in the cart.</p>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {combos.map((combo) => (
+          <div key={combo.id} className="flex flex-col rounded-2xl border border-[color:var(--brand-line)] bg-white p-6">
+            <h3 className="text-xl font-semibold text-slate-900">{combo.title}</h3>
+            <p className="mt-2 text-sm text-slate-600">{combo.note}</p>
+            <ul className="mt-4 space-y-1.5 text-sm text-slate-700">
+              {combo.items.map((product) => (
+                <li key={product.slug} className="flex justify-between gap-3">
+                  <Link href={`/products/${product.slug}`} className="underline-offset-2 hover:underline">{product.title}</Link>
+                  <span className="shrink-0 text-slate-500">{product.price}</span>
                 </li>
               ))}
             </ul>
-            <button
-              type="button"
-              onClick={() => addPackToCart(pack)}
-              className="mt-8 w-full rounded-xl bg-[color:var(--brand-deep-green)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--brand-maroon-700)]"
-            >
-              Add to Cart
+            <p className="mt-5 border-t border-[color:var(--brand-line)] pt-4 text-2xl font-bold text-[color:var(--brand-deep-green)]">₹{combo.total}<span className="ml-2 text-xs font-medium text-slate-500">for {combo.items.length} items</span></p>
+            <button type="button" onClick={() => addCombo(combo)} className="mt-4 w-full rounded-full bg-[#0f4339] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123f36]">
+              {addedId === combo.id ? "Added to cart ✓" : "Add all to cart"}
             </button>
           </div>
         ))}
       </div>
+      <p className="sr-only" role="status">{addedId ? "Combo added to cart" : ""}</p>
     </section>
   );
 }

@@ -62,6 +62,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             shipping: snapshot?.shipping,
             subtotal: snapshot?.subtotal,
             discount: snapshot?.discount,
+            coupon: snapshot?.coupon,
+            promotions: snapshot?.promotions,
             tax: snapshot?.tax,
             delivery: snapshot?.delivery,
           }

@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/auth';
 
 type CouponType = 'percent' | 'flat';
 type CouponStatus = 'active' | 'paused';
+type CouponCustomer = 'all' | 'logged_in' | 'first_order';
 
 type Coupon = {
   id: string;
@@ -18,6 +19,12 @@ type Coupon = {
   usedCount: number;
   expiresAt: string | null;
   status: CouponStatus;
+  startsAt?: string | null;
+  customer?: CouponCustomer;
+  perCustomerLimit?: number;
+  stackable?: boolean;
+  public?: boolean;
+  appliesTo?: { products?: string[]; categories?: string[] } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,9 +40,31 @@ type CouponPayload = {
   usageLimit?: number | string;
   expiresAt?: string | null;
   status?: string;
+  startsAt?: string | null;
+  customer?: string;
+  perCustomerLimit?: number | string;
+  stackable?: boolean;
+  public?: boolean;
+  appliesTo?: { products?: unknown; categories?: unknown } | null;
 };
 
 const COUPON_FILE = 'coupons.json';
+
+function normalizeCustomer(value: unknown): CouponCustomer {
+  return value === 'logged_in' || value === 'first_order' ? value : 'all';
+}
+
+function normalizeStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string' && entry.trim() !== '').map((entry) => entry.trim()) : [];
+}
+
+function normalizeAppliesTo(value: unknown): Coupon['appliesTo'] {
+  if (!value || typeof value !== 'object') return null;
+  const scope = value as { products?: unknown; categories?: unknown };
+  const products = normalizeStringList(scope.products);
+  const categories = normalizeStringList(scope.categories);
+  return products.length || categories.length ? { products, categories } : null;
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -108,6 +137,7 @@ async function seedCoupons() {
       usedCount: 64,
       expiresAt: new Date(Date.now() + 45 * 86400000).toISOString(),
       status: 'active',
+      customer: 'first_order',
       createdAt: now,
       updatedAt: now,
     },
@@ -167,6 +197,12 @@ export async function POST(req: Request) {
     usedCount: 0,
     expiresAt: normalizeExpiry(body.expiresAt),
     status: normalizeStatus(body.status),
+    startsAt: normalizeExpiry(body.startsAt),
+    customer: normalizeCustomer(body.customer),
+    perCustomerLimit: toNonNegativeNumber(body.perCustomerLimit, 0),
+    stackable: body.stackable === true,
+    public: body.public === true,
+    appliesTo: normalizeAppliesTo(body.appliesTo),
     createdAt,
     updatedAt: createdAt,
   };
@@ -211,6 +247,12 @@ export async function PUT(req: Request) {
     usageLimit: body.usageLimit !== undefined ? toNonNegativeNumber(body.usageLimit, 0) : existing.usageLimit,
     expiresAt: body.expiresAt !== undefined ? normalizeExpiry(body.expiresAt) : existing.expiresAt,
     status: body.status !== undefined ? normalizeStatus(body.status) : existing.status,
+    startsAt: body.startsAt !== undefined ? normalizeExpiry(body.startsAt) : existing.startsAt ?? null,
+    customer: body.customer !== undefined ? normalizeCustomer(body.customer) : existing.customer ?? 'all',
+    perCustomerLimit: body.perCustomerLimit !== undefined ? toNonNegativeNumber(body.perCustomerLimit, 0) : existing.perCustomerLimit ?? 0,
+    stackable: body.stackable !== undefined ? body.stackable === true : existing.stackable ?? false,
+    public: body.public !== undefined ? body.public === true : existing.public ?? false,
+    appliesTo: body.appliesTo !== undefined ? normalizeAppliesTo(body.appliesTo) : existing.appliesTo ?? null,
     updatedAt: nowIso(),
   };
 

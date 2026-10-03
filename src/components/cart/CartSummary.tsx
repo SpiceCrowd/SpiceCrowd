@@ -1,13 +1,13 @@
 "use client";
 
 import { useCart } from "./CartProvider";
-import { calculateCartTotals, cartLineKey, formatCurrency } from "@/lib/cart";
+import { cartLineKey, formatCurrency } from "@/lib/cart";
+import type { Quote } from "@/lib/promotions";
+import QuoteBreakdown from "@/components/pricing/QuoteBreakdown";
 import Link from "next/link";
 
-export default function CartSummary({ discount = 0, shipping = 50 }: { discount?: number; shipping?: number }) {
+export default function CartSummary({ quote, quoteLoading, quoteError }: { quote: Quote | null; quoteLoading: boolean; quoteError: string | null }) {
   const { items, cartCount } = useCart();
-  const totals = calculateCartTotals(items, shipping);
-  const totalAfterDiscount = Math.max(0, totals.total - discount);
 
   if (!cartCount) {
     return (
@@ -39,15 +39,11 @@ export default function CartSummary({ discount = 0, shipping = 50 }: { discount?
         ))}
       </div>
       <div className="mt-4 rounded-[1.25rem] border border-slate-100 bg-slate-50 p-3.5 text-sm text-slate-700">
-        <div className="flex items-center justify-between text-slate-600">
+        <div className="mb-3 flex items-center justify-between text-slate-600">
           <span>Items</span>
           <span>{cartCount}</span>
         </div>
-        {discount > 0 && <div className="mt-3 flex items-center justify-between text-emerald-700"><span>Discount</span><span>-₹{discount}</span></div>}
-        <div className="mt-3 flex items-center justify-between font-semibold text-slate-950">
-          <span>Total</span>
-          <span>{formatCurrency(totalAfterDiscount)}</span>
-        </div>
+        <QuoteBreakdown quote={quote} loading={quoteLoading} error={quoteError} />
       </div>
     </div>
   );
