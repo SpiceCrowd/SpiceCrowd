@@ -29,7 +29,7 @@ export default function Footer() {
       { label: "Instagram", href: "https://instagram.com", external: true },
       { label: "Facebook", href: "https://facebook.com", external: true },
       { label: "WhatsApp", href: "https://wa.me/919000000000", external: true },
-      { label: "Email Us", href: "mailto:support@spicecrowd.in", external: true },
+      { label: "Email Us", href: "mailto:support@spicecrowd@gmail.com", external: true },
     ],
   };
 
