@@ -11,6 +11,8 @@ services:
     healthCheckPath: /
     domains:
       - www.spicecrowd.in
+      - spicecrowd.shop
+      - www.spicecrowd.shop
     envVars:
       - key: NODE_VERSION
         value: 22
